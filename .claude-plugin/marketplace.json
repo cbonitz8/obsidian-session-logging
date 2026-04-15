@@ -10,7 +10,10 @@
     {
       "name": "obsidian-session-logging",
       "description": "Session logging, daily logs, standups, and project tracking via Obsidian CLI",
-      "source": ".",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/cbonitz8/obsidian-session-logging.git"
+      },
       "category": "productivity"
     }
   ]
