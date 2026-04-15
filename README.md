@@ -1,45 +1,22 @@
 # Obsidian Session Logging
 
-A Claude Code skill for tracking work sessions, daily progress, and standup notes in an Obsidian vault. Uses the Obsidian CLI (1.12+) for vault operations with fallback to file tools when CLI is unavailable.
-
-## What It Does
-
-- **Session logs** — per-project work session tracking with changed files, open issues, and plan references
-- **Daily logs** — cross-project daily summaries with links to session logs and open threads
-- **Standups** — shared daily standup notes with per-author sections
-- **Project overviews** — living status documents kept current as work progresses
-- **Design specs** — plan tracking with status lifecycle (active → completed → superseded)
-- **Wrap-up checklists** — end-of-session verification to prevent stale documentation
+A Claude Code plugin for tracking work sessions, daily progress, and standup notes in an Obsidian vault. Uses the Obsidian CLI (1.12+) for vault operations with fallback to file tools when CLI is unavailable.
 
 ## Installation
 
-### Claude Code
+1. Add the marketplace:
 
-```bash
-claude plugins add obsidian-session-logging@cbonitz8
+```
+/plugin marketplace add cbonitz8/obsidian-session-logging
 ```
 
-Or add to your `~/.claude/settings.json`:
+2. Install the plugin:
 
-```json
-{
-  "enabledPlugins": {
-    "obsidian-session-logging@cbonitz8": true
-  },
-  "extraKnownMarketplaces": {
-    "cbonitz8": {
-      "source": {
-        "source": "github",
-        "repo": "cbonitz8/obsidian-session-logging"
-      }
-    }
-  }
-}
+```
+/plugin install obsidian-session-logging@obsidian-session-logging
 ```
 
-## Configuration
-
-The skill reads vault configuration from your project's `CLAUDE.md` file. Add this section:
+3. Add vault configuration to your project's `CLAUDE.md`:
 
 ```markdown
 ## Obsidian Vault Integration
@@ -48,21 +25,47 @@ The skill reads vault configuration from your project's `CLAUDE.md` file. Add th
 - **Vault path:** /path/to/your/vault
 ```
 
-### Optional: Sync plugin fields
+4. Create [templates](#templates) in your vault's `Templates/` folder.
 
-If you use a sync plugin (e.g., Snobby for ServiceNow sync), the skill manages `sn_`-prefixed frontmatter fields for sync state tracking. These fields are optional — the skill works without them, but if present, it handles them correctly:
+## What It Does
 
-- `sn_sys_id` — remote record identifier
-- `sn_category` — maps to remote document category
-- `sn_project` — maps to remote project field
-- `sn_tags` — comma-separated tags
-- `sn_synced` — sync status flag
+- **Session logs** — per-project work session tracking with changed files, open issues, and plan references
+- **Daily logs** — cross-project daily summaries with links to session logs and open threads
+- **Standups** — shared daily standup notes with per-author sections
+- **Project overviews** — living status documents kept current as work progresses
+- **Design specs** — plan tracking with status lifecycle (active / completed / superseded)
+- **Wrap-up checklists** — end-of-session verification to prevent stale documentation
 
-If you don't use a sync plugin, you can ignore these fields entirely.
+The skill activates automatically when you:
+
+- Start a new conversation (reads recent context)
+- Ask to update logs, create session entries, or generate standup notes
+- Wrap up a work session
+
+You can also invoke it directly:
+
+```
+/obsidian-session-logging
+```
+
+## Requirements
+
+- **Obsidian 1.12+** with CLI support (or fallback mode using direct file operations)
+- **Claude Code** with plugin support
+
+### CLI compatibility
+
+The skill auto-detects the Obsidian CLI binary:
+
+| Platform | Default path |
+|----------|-------------|
+| macOS | `/Applications/Obsidian.app/Contents/MacOS/obsidian` |
+| Windows | `%LOCALAPPDATA%\Obsidian\Obsidian.exe` |
+| Linux | `obsidian` on PATH, `/usr/bin/obsidian`, `/snap/bin/obsidian` |
+
+If the CLI is unavailable, the skill falls back to direct file operations (Read/Write/Edit/Glob/Grep).
 
 ## Vault Structure
-
-The skill expects this folder layout:
 
 ```
 <vault>/
@@ -88,7 +91,7 @@ The skill expects this folder layout:
 
 ## Templates
 
-The skill uses Obsidian templates for creating new files. Create these templates in your vault's `Templates/` folder:
+The skill uses Obsidian templates for creating new files. Create these in your vault's `Templates/` folder:
 
 - **Session Log** — frontmatter: project, date, type, author, status
 - **Daily Log** — frontmatter: date, type, author, projects
@@ -97,23 +100,19 @@ The skill uses Obsidian templates for creating new files. Create these templates
 - **Project Overview** — frontmatter: project, status, type
 - **Component Doc** — frontmatter: type, name
 
-See the [SKILL.md](skills/obsidian-session-logging/SKILL.md) for complete frontmatter schemas.
+See [SKILL.md](skills/obsidian-session-logging/SKILL.md) for complete frontmatter schemas and naming conventions.
 
-## Usage
+## Optional: Sync Plugin Fields
 
-The skill activates automatically when you:
+If you use a sync plugin (e.g., Snobby for ServiceNow sync), the skill manages `sn_`-prefixed frontmatter fields for sync state tracking. These fields are optional — the skill works without them, but if present, it handles them correctly:
 
-- Start a new conversation (reads recent context)
-- Ask to update logs, create session entries, or generate standup notes
-- Wrap up a work session
+- `sn_sys_id` — remote record identifier
+- `sn_category` — maps to remote document category
+- `sn_project` — maps to remote project field
+- `sn_tags` — comma-separated tags
+- `sn_synced` — sync status flag
 
-### Slash command
-
-```
-/obsidian-session-logging
-```
-
-### Example workflows
+## Example Workflows
 
 **Starting work:**
 > "Let's work on Project X"
@@ -124,20 +123,3 @@ The skill activates automatically when you:
 > "Let's wrap up"
 >
 > Skill runs the wrap-up checklist: updates overview status, finalizes session log, creates daily log with verified state, updates standup notes.
-
-## Requirements
-
-- **Obsidian 1.12+** with CLI support
-- Claude Code CLI or compatible agent
-
-## CLI Compatibility
-
-The skill auto-detects the Obsidian CLI binary:
-
-| Platform | Default path |
-|----------|-------------|
-| macOS | `/Applications/Obsidian.app/Contents/MacOS/obsidian` |
-| Windows | `%LOCALAPPDATA%\Obsidian\Obsidian.exe` |
-| Linux | `obsidian` on PATH, `/usr/bin/obsidian`, `/snap/bin/obsidian` |
-
-If Obsidian is not running or the CLI is unavailable, the skill falls back to direct file operations (Read/Write/Edit/Glob/Grep).

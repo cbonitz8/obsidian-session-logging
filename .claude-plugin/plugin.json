@@ -1,5 +1,8 @@
 {
   "name": "obsidian-session-logging",
   "description": "Track work sessions, daily progress, and standup notes in an Obsidian vault",
-  "author": "cbonitz8"
+  "author": {
+    "name": "cbonitz8",
+    "url": "https://github.com/cbonitz8"
+  }
 }
