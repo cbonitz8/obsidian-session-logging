@@ -119,9 +119,11 @@ Templates live in the `Templates/` folder and are used via the CLI's `create tem
 # 1. Create file from template ({{date}} resolves automatically)
 obsidian vault="X" create path="<project>/Session Logs/<name>.md" template="Session Log"
 
-# 2. IMPORTANT: Clear inherited sn_sys_id so this file gets its own SN record
+# 2. IMPORTANT: Clear inherited sn_sys_id and set correct sn_category so this
+#    file gets its own SN record and lands in the right folder on sync
 obsidian vault="X" property:set name="sn_sys_id" value="" path="<project>/Session Logs/<name>.md"
 obsidian vault="X" property:set name="sn_synced" value="false" path="<project>/Session Logs/<name>.md"
+obsidian vault="X" property:set name="sn_category" value="session_log" path="<project>/Session Logs/<name>.md"
 
 # 3. Set dynamic frontmatter properties
 obsidian vault="X" property:set name="project" value="Project Name" path="<project>/Session Logs/<name>.md"
@@ -132,7 +134,7 @@ obsidian vault="X" property:set name="sn_project" value="Project Name" path="<pr
 obsidian vault="X" append path="<project>/Session Logs/<name>.md" content="## Session Notes\n\nStarting work on..."
 ```
 
-**WARNING (if using sync plugin):** Templates may contain sync identifiers (e.g., `sn_sys_id`). The `create template=` command copies ALL frontmatter including sync IDs. You MUST clear sync identifiers immediately after creation, or the new file will collide with the template's remote record.
+**WARNING (if using sync plugin):** Templates may contain sync identifiers (e.g., `sn_sys_id`) and `sn_category: template`. The `create template=` command copies ALL frontmatter. You MUST clear `sn_sys_id` and set the correct `sn_category` immediately after creation, or the new file will collide with the template's remote record and land in the wrong folder on sync.
 
 ## Frontmatter Properties (Schema)
 
@@ -349,6 +351,7 @@ Add these throughout body content whenever referencing something that exists in 
   obsidian vault="X" create path="<project>/Session Logs/<description>.md" template="Session Log"
   obsidian vault="X" property:set name="sn_sys_id" value="" path="<project>/Session Logs/<description>.md"
   obsidian vault="X" property:set name="sn_synced" value="false" path="<project>/Session Logs/<description>.md"
+  obsidian vault="X" property:set name="sn_category" value="session_log" path="<project>/Session Logs/<description>.md"
   obsidian vault="X" property:set name="project" value="<Project Name>" path="<project>/Session Logs/<description>.md"
   obsidian vault="X" property:set name="author" value="<author>" path="<project>/Session Logs/<description>.md"
   obsidian vault="X" property:set name="sn_project" value="<Project Name>" path="<project>/Session Logs/<description>.md"
@@ -417,6 +420,7 @@ obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="##
   obsidian vault="X" create path="Daily Logs/<brief description>.md" template="Daily Log"
   obsidian vault="X" property:set name="sn_sys_id" value="" path="Daily Logs/<name>.md"
   obsidian vault="X" property:set name="sn_synced" value="false" path="Daily Logs/<name>.md"
+  obsidian vault="X" property:set name="sn_category" value="daily_log" path="Daily Logs/<name>.md"
   obsidian vault="X" property:set name="author" value="<author>" path="Daily Logs/<name>.md"
   obsidian vault="X" property:set name="projects" value="Project1,Project2" type=list path="Daily Logs/<name>.md"
   ```
@@ -436,6 +440,7 @@ obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="##
   obsidian vault="X" create path="Standups/YYYY-MM-DD.md" template="Standup"
   obsidian vault="X" property:set name="sn_sys_id" value="" path="Standups/YYYY-MM-DD.md"
   obsidian vault="X" property:set name="sn_synced" value="false" path="Standups/YYYY-MM-DD.md"
+  obsidian vault="X" property:set name="sn_category" value="standup" path="Standups/YYYY-MM-DD.md"
   ```
 - [ ] **One section per author.** Read the standup first. If the author already has a `### <author>` section, use Edit to update it in place — merge new bullets into "Today", update "Next" and "Blockers". Do NOT append a new heading like `### Alice (Evening)` or `### Alice (Late)`.
   ```bash
@@ -505,6 +510,7 @@ Sync plugin handles archive status if configured — no file moves needed.
 obsidian vault="X" create path="<project>/Project Overviews/<Project Name> Overview.md" template="Project Overview"
 obsidian vault="X" property:set name="sn_sys_id" value="" path="<project>/Project Overviews/<Project Name> Overview.md"
 obsidian vault="X" property:set name="sn_synced" value="false" path="<project>/Project Overviews/<Project Name> Overview.md"
+obsidian vault="X" property:set name="sn_category" value="project_overview" path="<project>/Project Overviews/<Project Name> Overview.md"
 obsidian vault="X" property:set name="project" value="<Project Name>" path="<project>/Project Overviews/<Project Name> Overview.md"
 obsidian vault="X" property:set name="sn_project" value="<Project Name>" path="<project>/Project Overviews/<Project Name> Overview.md"
 ```
