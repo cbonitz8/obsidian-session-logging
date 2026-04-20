@@ -141,10 +141,16 @@ obsidian vault="X" append path="<project>/Session Logs/<name>.md" content="## Se
 Every file has standardized YAML frontmatter. These properties are the **schema** — tooling and Dataview queries depend on them. Always include all required fields.
 
 **Sync fields (optional — only if using a sync plugin like Snobby):**
-- `sn_category` — maps to remote document category
+- `sn_category` — maps to remote document category (see category reference below)
 - `sn_project` — maps to remote project field
 - `sn_tags` — comma-separated tags (e.g., "archived", "complete")
 - `sn_synced: false` — set to false on creation/edit, sync plugin sets to true after push
+
+**Category reference:** The `sn_category` values listed in the schemas below are the built-in defaults. New categories may be added in ServiceNow at any time. To discover all available categories and their values, read the sync plugin's settings file:
+```bash
+cat "<vault>/.obsidian/plugins/snobby/data.json" | grep -A 50 '"categories"'
+```
+The `categories` object maps SN values (e.g., `story_time`) to folder names (e.g., `"Story Time"`). Use the SN value for `sn_category`. If a category you need isn't in the mapping, the sync plugin will auto-derive the folder name from the value (e.g., `story_time` → "Story Time").
 
 ### Session Log
 ```yaml
