@@ -21,6 +21,20 @@ This skill uses the **Obsidian CLI** (bundled with Obsidian 1.12+) as the primar
 
 All CLI commands use `vault="<name>"` (e.g., `vault="My Vault"`). If the CLI is unavailable (Obsidian not running, binary not found), fall back to Read/Write/Edit/Glob/Grep — see **Fallback Mode** at the end.
 
+### Author Detection
+
+The current user's identity is derived from the Snobby sync plugin settings. At session start, read:
+
+```bash
+cat "<vault_path>/.obsidian/plugins/snobby/data.json"
+```
+
+Extract `settings.userDisplayName` and use the **first name only** (split on space, take index 0) as `<author>` for all operations — session logs, daily logs, standup sections, etc.
+
+- Example: `"userDisplayName": "Caleb Bonitz"` → author is `Caleb`
+- If snobby settings are missing or `userDisplayName` is empty, fall back to the `$CLAUDE_AUTHOR` environment variable
+- If neither source is available, prompt the user for their name before creating any authored content
+
 ### CLI Command Reference
 
 ```bash
