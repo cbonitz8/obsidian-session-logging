@@ -144,8 +144,8 @@ obsidian vault="X" property:set name="project" value="Project Name" path="<proje
 obsidian vault="X" property:set name="author" value="<author>" path="<project>/Session Logs/<name>.md"
 obsidian vault="X" property:set name="sn_project" value="Project Name" path="<project>/Session Logs/<name>.md"
 
-# 4. Append dynamic body content
-obsidian vault="X" append path="<project>/Session Logs/<name>.md" content="## Session Notes\n\nStarting work on..."
+# 4. Fill in the Session Notes section (already exists from template)
+obsidian vault="X" edit path="<project>/Session Logs/<name>.md" find="## Session Notes\n" replace="## Session Notes\n\nStarting work on..."
 ```
 
 **WARNING (if using sync plugin):** Templates may contain sync identifiers (e.g., `sn_sys_id`) and `sn_category: template`. The `create template=` command copies ALL frontmatter. You MUST clear `sn_sys_id` and set the correct `sn_category` immediately after creation, or the new file will collide with the template's remote record and land in the wrong folder on sync.
@@ -397,9 +397,14 @@ Add these throughout body content whenever referencing something that exists in 
 - Use an **Open Issues** section with checkboxes for work identified but not completed
 - Check off items as they're resolved (even across sessions — go back and check off old items)
 
-**Appending to session logs:**
+**Writing to session logs:**
+Templates include placeholder section headers (## Summary, ## Changes, etc.). When writing session content, use `edit` to replace the empty placeholder sections — do NOT use `append`, which would duplicate the headers at the end of the file.
 ```bash
-obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="## <heading>\n\n<content>"
+# Use edit to fill in template sections:
+obsidian vault="X" edit path="<project>/Session Logs/<session>.md" find="## Summary\n" replace="## Summary\n\n<summary content>\n"
+
+# Only use append for genuinely new sections not in the template:
+obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="## <new heading>\n\n<content>"
 ```
 
 **Keeping the overview current:**
@@ -423,12 +428,14 @@ obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="##
 - [ ] Scan for stale claims: "needs testing" when tests passed, "in progress" when completed, phases listed as upcoming that are done
 
 ### 2. Session log
-- [ ] Append final summary of changes:
+- [ ] Fill in the template sections using edit (not append — sections already exist from template):
   ```bash
-  obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="## Summary\n\n<summary>"
+  # Fill Summary, Changes, Open Issues, Changed Files sections:
+  obsidian vault="X" edit path="<session>" find="## Summary\n" replace="## Summary\n\n<summary>\n"
+  obsidian vault="X" edit path="<session>" find="## Changes\n" replace="## Changes\n\n<changes>\n"
+  obsidian vault="X" edit path="<session>" find="## Open Issues\n" replace="## Open Issues\n\n<issues>\n"
+  obsidian vault="X" edit path="<session>" find="## Changed Files\n" replace="## Changed Files\n\n<files>\n"
   ```
-- [ ] List all changed files
-- [ ] Add **Open Issues** section with checkboxes for unfinished work
 - [ ] Set status to complete:
   ```bash
   obsidian vault="X" property:set name="status" value="complete" path="<project>/Session Logs/<session>.md"
