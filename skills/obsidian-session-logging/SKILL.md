@@ -453,10 +453,14 @@ obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="##
 ### 4. Standup notes
 - [ ] Create if it doesn't exist:
   ```bash
-  # Check if today's standup exists
-  obsidian vault="X" read path="Standups/YYYY-MM-DD.md"
+  # Check if today's standup exists (also check for collision variants like "2026-04-22 (abc123).md")
+  ls "<vault_path>/Standups/" | grep "YYYY-MM-DD"
 
-  # If not found, create from template:
+  # If not found locally, ask the user to sync Snobby first:
+  # "No standup for today found locally. Please sync Snobby to check if another user already created one, then re-run update logs."
+  # STOP HERE — do not create until user confirms sync is done.
+
+  # Only create if still not found after user syncs:
   obsidian vault="X" create path="Standups/YYYY-MM-DD.md" template="Standup"
   obsidian vault="X" property:set name="sn_sys_id" value="" path="Standups/YYYY-MM-DD.md"
   obsidian vault="X" property:set name="sn_synced" value="false" path="Standups/YYYY-MM-DD.md"
