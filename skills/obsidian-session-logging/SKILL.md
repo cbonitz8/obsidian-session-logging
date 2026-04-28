@@ -473,12 +473,17 @@ obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="##
   obsidian vault="X" property:set name="sn_synced" value="false" path="Standups/YYYY-MM-DD.md"
   obsidian vault="X" property:set name="sn_category" value="standup" path="Standups/YYYY-MM-DD.md"
   ```
-- [ ] **One section per author.** Read the standup first. If the author already has a `### <author>` section, use Edit to update it in place — merge new bullets into "Today", update "Next" and "Blockers". Do NOT append a new heading like `### Alice (Evening)` or `### Alice (Late)`.
+- [ ] **One section per author.** Read the standup first. If the author already has a `### <author>` section, use Edit to update it in place. **Do NOT replace existing content** — preserve all prior bullets and append new ones:
+  - **Yesterday/prior days:** Keep existing bullets. Only add new day sections if work was done on days not already listed.
+  - **Today:** Keep all existing bullets. Append new bullets for work done since the last update. Do not remove or rewrite prior bullets.
+  - **Blockers:** Update only if the blocker status has changed.
+  - Do NOT append a new heading like `### Alice (Evening)` or `### Alice (Late)`.
   ```bash
   # If author section does NOT exist yet, append it:
   obsidian vault="X" append path="Standups/YYYY-MM-DD.md" content="### <author>\n\n**Yesterday:**\n- Bullet points\n\n**Today:**\n- Next steps\n\n**Blockers:** None"
 
-  # If author section ALREADY exists, use Read + Edit to update in place
+  # If author section ALREADY exists, use Read + Edit to ADD new bullets
+  # to the existing Today section — do NOT replace the whole section
   ```
 - [ ] Do not overwrite other authors' sections
 
