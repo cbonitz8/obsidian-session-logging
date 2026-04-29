@@ -34,6 +34,8 @@ A Claude Code plugin for tracking work sessions, daily progress, and standup not
 - **Standups** — shared daily standup notes with per-author sections
 - **Project overviews** — living status documents kept current as work progresses
 - **Design specs** — plan tracking with status lifecycle (active / completed / superseded)
+- **Vault index** — auto-maintained catalog of all vault files for fast LLM orientation
+- **Lint** — read-only vault health audit that flags issues and asks before fixing
 - **Wrap-up checklists** — end-of-session verification to prevent stale documentation
 
 The skill activates automatically when you:
@@ -41,6 +43,7 @@ The skill activates automatically when you:
 - Start a new conversation (reads recent context)
 - Ask to update logs, create session entries, or generate standup notes
 - Wrap up a work session
+- Ask to lint the vault or rebuild the index
 
 You can also invoke it directly:
 
@@ -80,6 +83,8 @@ If the CLI is unavailable, the skill falls back to direct file operations (Read/
     <description>.md
   Standups/
     YYYY-MM-DD.md
+  Index/
+    index.md
   Resources/
     <Component Name>.md
   Templates/
@@ -117,9 +122,19 @@ If you use a sync plugin (e.g., Snobby for ServiceNow sync), the skill manages `
 **Starting work:**
 > "Let's work on Project X"
 >
-> Skill reads the latest daily log and project overview, verifies status claims, and reports current state.
+> Skill reads the vault index and latest daily log, reads the project overview, verifies status claims, and reports current state.
 
 **Wrapping up:**
 > "Let's wrap up"
 >
-> Skill runs the wrap-up checklist: updates overview status, finalizes session log, creates daily log with verified state, updates standup notes.
+> Skill runs the wrap-up checklist: updates overview status, finalizes session log, creates daily log with verified state, updates standup notes, and incrementally updates the vault index.
+
+**Linting:**
+> "Lint the vault"
+>
+> Skill audits for stale index entries, orphan pages, unclosed sessions/plans, missing frontmatter, and broken wikilinks. Reports findings and asks which to fix.
+
+**Rebuilding the index:**
+> "Rebuild the index"
+>
+> Skill scans the entire vault and regenerates `Index/index.md` from scratch.

@@ -1,6 +1,6 @@
 ---
 name: obsidian-session-logging
-description: Use when starting a new conversation, wrapping up a work session, or when the user asks to update logs, generate standup notes, create session entries, or archive old files. Also use when beginning work on a project to read recent context.
+description: Use when starting a new conversation, wrapping up a work session, or when the user asks to update logs, generate standup notes, create session entries, lint the vault, rebuild the index, or archive old files. Also use when beginning work on a project to read recent context.
 ---
 
 # Obsidian Session Logging
@@ -91,6 +91,8 @@ Read vault path from the project's CLAUDE.md or memory. Expected structure:
     description.md
   Standups/                       # One file per day, shared by all authors
     YYYY-MM-DD.md
+  Index/                          # Vault-wide file catalog for LLM navigation
+    index.md
   Resources/                      # Reusable component docs
     Component Name.md
   Templates/                      # Obsidian templates
@@ -116,6 +118,7 @@ Read vault path from the project's CLAUDE.md or memory. Expected structure:
 | Standup | `YYYY-MM-DD.md` | `2026-04-06.md` |
 | Project overview | `<Project Name> Overview.md` | `My Project Overview.md` |
 | Component doc | `<Display Name>.md` | `Data Grid Component.md` |
+| Index | `index.md` | `index.md` |
 
 - **No dates in filenames** — dates are tracked in frontmatter (`date:` property). Old files with dates in the name are legacy; new files omit the date entirely.
 - Session/daily descriptions: lowercase, concise, use `+` to join topics
@@ -292,6 +295,20 @@ sn_synced: false
 ---
 ```
 
+### Index
+```yaml
+---
+type: index                     # required — literal "index"
+sn_category: index
+sn_project: ""
+sn_tags: ""
+sn_synced: false
+---
+```
+- Single file: `Index/index.md`
+- Auto-maintained by the LLM — not manually edited
+- See **Vault Index** section for format and update workflows
+
 ## Tags
 
 Tags mark **action items** on task checkboxes. Keep the set small — every tag should power a query or workflow.
@@ -336,9 +353,82 @@ Add these throughout body content whenever referencing something that exists in 
 - Link to the technical reference doc (if one exists) in the Ecosystem section
 - Do NOT maintain a Plans table — plans are discoverable via backlinks
 
+## Vault Index
+
+The vault maintains an index at `Index/index.md` — a flat catalog of all significant files with one-line summaries. Gives the LLM a single-read overview of the vault without scanning every folder.
+
+### Format
+
+Entries grouped by type. One line per entry: wikilink + summary + status. Active items sort before completed within each group. Alphabetical within groups.
+
+```markdown
+## Active Projects
+- [[Project/Project Overviews/Project Overview|Project Name]] — One-line description (status)
+
+## Active Areas
+- [[Area/Project Overviews/Area Overview|Area Name]] — One-line description
+
+## Active Design Specs
+- [[Project/Design Specs/plan-name|plan-name]] — One-line purpose (status)
+
+## Resources
+- [[Resources/Component Name|Component Name]] — One-line description
+
+## Recent Session Logs
+- [[Project/Session Logs/description|description]] — YYYY-MM-DD, author
+
+## Recent Daily Logs
+- [[Daily Logs/description|description]] — YYYY-MM-DD
+
+## Completed Projects
+- [[Project/Project Overviews/Project Overview|Project Name]] — Completed YYYY-MM-DD
+```
+
+**Rules:**
+- One line per entry, keep summaries concise
+- Session logs and daily logs: only the last 2 weeks — older entries removed during updates
+- Completed/archived projects: one line each, no sub-entries for their specs/sessions
+- Summaries written from the file's current content, not copied from stale sources
+
+### Incremental Update (at wrap-up)
+
+Run as part of the wrap-up checklist. Only touch entries for files created or modified this session.
+
+1. Read `Index/index.md`
+2. For each file created this session: add a new entry in the appropriate group
+3. For each file modified this session: update the entry's summary/status if changed
+4. Remove any session/daily log entries older than 2 weeks
+5. Edit the index using find/replace on individual lines — do NOT rewrite the whole file
+
+### Full Rebuild
+
+Only run when lint identifies significant index drift, or on explicit user request ("rebuild the index"). Scans the entire vault and regenerates `Index/index.md` from scratch.
+
+1. List all project folders: `files folder=` for each top-level project
+2. Read frontmatter from every overview, plan, and resource doc
+3. List recent session logs and daily logs (last 2 weeks)
+4. Generate the full index following the format above
+5. Write the complete file
+
+**Creating the index for the first time:**
+```bash
+obsidian vault="X" create path="Index/index.md" template="Index"
+# If no Index template exists, use Write tool with full frontmatter
+obsidian vault="X" property:set name="sn_sys_id" value="" path="Index/index.md"
+obsidian vault="X" property:set name="sn_synced" value="false" path="Index/index.md"
+obsidian vault="X" property:set name="sn_category" value="index" path="Index/index.md"
+```
+Then run the full rebuild workflow to populate it.
+
 ## Starting a Session
 
 **Checklist — run at session start:**
+
+- [ ] **Read the vault index** for a quick overview of what exists:
+  ```bash
+  obsidian vault="X" read path="Index/index.md"
+  ```
+  If the index doesn't exist yet, skip this step and create it during wrap-up.
 
 - [ ] **Find and read the most recent daily log:**
   ```bash
@@ -406,6 +496,12 @@ obsidian vault="X" edit path="<project>/Session Logs/<session>.md" find="## Summ
 # Only use append for genuinely new sections not in the template:
 obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="## <new heading>\n\n<content>"
 ```
+
+**Filing valuable synthesis:**
+- When a conversation produces reusable analysis — cross-project comparisons, architectural decisions, research findings — save it to the vault rather than letting it die in chat history
+- Use Design Spec (`type: plan`) for project-specific analysis
+- Use Resource (`type: component`) for cross-project reusable knowledge
+- Ask the user before filing: "This analysis seems worth keeping — want me to save it to the vault?"
 
 **Keeping the overview current:**
 - After completing a feature or phase: update the Status section immediately (use Read + Edit)
@@ -522,7 +618,14 @@ obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="##
 - On Monday with no weekend work, "Yesterday" means Friday — no special handling needed
 - Each author owns their section — append yours, never edit another author's section
 
-### 5. Archive handling
+### 5. Update the vault index
+- [ ] Read `Index/index.md`
+- [ ] Add entries for any files created this session (session log, daily log, design specs, etc.)
+- [ ] Update entries for any files whose status or summary changed this session
+- [ ] Remove session/daily log entries older than 2 weeks
+- [ ] Use targeted edits on individual lines — do NOT rewrite the whole index
+
+### 6. Archive handling
 **No more moving files to Archive/.** Archived status is handled via frontmatter:
 ```bash
 obsidian vault="X" property:set name="sn_tags" value="archived" path="<path>"
@@ -530,7 +633,7 @@ obsidian vault="X" property:set name="status" value="completed" path="<path>"
 ```
 Sync plugin handles archive status if configured — no file moves needed.
 
-### 6. Post-session verification
+### 7. Post-session verification
 - [ ] Backlinks in active files point to correct paths
 - [ ] No overview contains stale status claims or implementation details
 - [ ] All new/modified files have `sn_synced: false` (plugin handles this automatically on edit)
@@ -556,6 +659,64 @@ obsidian vault="X" property:set name="sn_project" value="<Project Name>" path="<
 | New area | Same as project but set `type: area` — areas are ongoing responsibilities, never "complete" |
 | Project completes | `property:set name="status" value="complete"` + `property:set name="sn_tags" value="complete"` |
 | New/modified component | Update `Resources/<name>.md` |
+
+## Lint
+
+A read-only audit of vault health. Scans for issues, reports findings, and asks the user which to fix. Changes nothing until approved.
+
+**Trigger:** User says "lint the vault", "vault lint", "check vault health", or similar.
+
+### Checks
+
+| Check | What it flags |
+|-------|--------------|
+| **Missing index entries** | Files in vault not listed in `Index/index.md` |
+| **Stale index entries** | Index entries pointing to files that no longer exist |
+| **Orphan pages** | Files with zero backlinks (not linked from anywhere) |
+| **Stale overviews** | Overview status claims that don't match actual project state |
+| **Unclosed plans** | All tasks checked off but `status` still `active` |
+| **Unclosed sessions** | `status: in-progress` on session logs from past days |
+| **Missing frontmatter** | Required fields absent for the file's `type` |
+| **Broken wikilinks** | Links to files that don't exist in the vault |
+| **Missing required backlinks** | Daily logs without session links, sessions without plan links |
+
+### Workflow
+
+1. Run all checks, collecting issues into a grouped report
+2. Print the report to the conversation:
+   ```
+   ## Vault Lint Report
+
+   ### Missing Index Entries (3)
+   - Project/Design Specs/new-plan.md
+   - Resources/New Component.md
+   - Project/Session Logs/recent session.md
+
+   ### Unclosed Sessions (1)
+   - Project/Session Logs/old session.md — status: in-progress, date: 2026-04-25
+
+   ### Stale Index Entries (1)
+   - [[Deleted/File|old entry]] — file no longer exists
+
+   ✅ No issues: orphan pages, broken wikilinks, missing frontmatter
+   ```
+3. Ask: "Want me to fix all, some, or none of these?"
+4. Fix only what the user approves:
+   - **Missing index entries** → add them to index
+   - **Stale index entries** → remove from index
+   - **Unclosed sessions** → set `status: complete`
+   - **Unclosed plans** → set `status: completed`
+   - **Missing frontmatter** → add required fields with sensible defaults
+   - **Stale overviews** → read current state and update status line
+   - **Broken wikilinks** → report only (can't auto-fix without knowing intent)
+   - **Orphan pages** → report only (user decides if they need linking)
+   - **Missing required backlinks** → report only (user decides)
+
+### What lint does NOT do
+- Rewrite the index (that's **Full Rebuild** — separate workflow)
+- Modify file content beyond frontmatter fixes
+- Delete files
+- Make changes without asking
 
 ## Fallback Mode: CLI Unavailable
 
