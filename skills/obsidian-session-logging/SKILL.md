@@ -270,7 +270,7 @@ sn_synced: false
 ### Standup
 ```yaml
 ---
-date: YYYY-MM-DD                # required
+date: YYYY-MM-DD                # required — the meeting day, NOT the work day
 type: standup                   # required — literal "standup"
 sn_category: standup
 sn_project: ""
@@ -278,10 +278,16 @@ sn_tags: ""
 sn_synced: false
 ---
 ```
-- One file per day, named by date: `Standups/YYYY-MM-DD.md`
+- One file per **standup meeting day**, named by that date: `Standups/YYYY-MM-DD.md`
 - Shared by all team members — each person adds their section under the date
 - No `author` field in frontmatter (multiple authors per file)
 - Dashboard links to the latest standup via dataview query
+
+**Standup date = next business day after the work being recapped.** A standup recaps work done on prior business day(s) under "Yesterday" and lays out plans for the standup date itself under "Today". Work done Monday lands on Tuesday's standup; work done Friday lands on Monday's standup.
+
+- No standup files for Saturday or Sunday.
+- No standup files for known holidays — the next-business-day standup absorbs the gap.
+- If multiple work days roll into one standup (Friday→Monday, pre-holiday→post-holiday), use the multi-day format with explicit day labels (see "Wrapping Up → Standup notes").
 
 ### Component Doc
 ```yaml
@@ -554,20 +560,33 @@ obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="##
 - [ ] Summarize each project's **verified** current state (freshly confirmed, not copied from a previous daily log)
 
 ### 4. Standup notes
+
+**Compute the standup date FIRST, before any file operations.** The standup file is dated for the meeting day, which is the **next business day after the work being recapped**.
+
+- Read `currentDate` from the environment (CLAUDE.md or system context).
+- `<work_day>` = `currentDate` (the day the work happened — typically today).
+- `<standup_date>` = next business day after `<work_day>`. Skip Saturday, Sunday, and any known holidays.
+  - Work day Mon → standup Tue.
+  - Work day Fri → standup **Mon** (skipping Sat/Sun).
+  - Work day pre-holiday → standup first business day after the holiday.
+- If you're uncertain whether a date is a holiday, ask the user before creating the file.
+- Use the computed `<standup_date>` as `YYYY-MM-DD` in every command below.
+
 - [ ] Create if it doesn't exist:
   ```bash
-  # Check if today's standup exists (also check for collision variants like "2026-04-22 (abc123).md")
-  ls "<vault_path>/Standups/" | grep "YYYY-MM-DD"
+  # Check if the standup-date file exists (also check for collision variants like "2026-04-22 (abc123).md")
+  ls "<vault_path>/Standups/" | grep "<standup_date>"
 
   # If not found locally, ask the user to sync Snobby first:
-  # "No standup for today found locally. Please sync Snobby to check if another user already created one, then re-run update logs."
+  # "No standup for <standup_date> found locally. Please sync Snobby to check if another user already created one, then re-run update logs."
   # STOP HERE — do not create until user confirms sync is done.
 
   # Only create if still not found after user syncs:
-  obsidian vault="X" create path="Standups/YYYY-MM-DD.md" template="Standup"
-  obsidian vault="X" property:set name="sn_sys_id" value="" path="Standups/YYYY-MM-DD.md"
-  obsidian vault="X" property:set name="sn_synced" value="false" path="Standups/YYYY-MM-DD.md"
-  obsidian vault="X" property:set name="sn_category" value="standup" path="Standups/YYYY-MM-DD.md"
+  obsidian vault="X" create path="Standups/<standup_date>.md" template="Standup"
+  obsidian vault="X" property:set name="sn_sys_id" value="" path="Standups/<standup_date>.md"
+  obsidian vault="X" property:set name="sn_synced" value="false" path="Standups/<standup_date>.md"
+  obsidian vault="X" property:set name="sn_category" value="standup" path="Standups/<standup_date>.md"
+  obsidian vault="X" property:set name="date" value="<standup_date>" path="Standups/<standup_date>.md"
   ```
 - [ ] **One section per author.** Read the standup first. If the author already has a `### <author>` section, use Edit to update it in place. **Do NOT replace existing content** — preserve all prior bullets and append new ones:
   - **Yesterday/prior days:** Keep existing bullets. Only add new day sections if work was done on days not already listed.
@@ -583,39 +602,40 @@ obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="##
   ```
 - [ ] Do not overwrite other authors' sections
 
-**Standard format (Monday-Friday, no weekend work):**
+**Standard format** (single work day rolls into the standup — e.g. Tue's standup recaps Mon work):
 ```
 ### <author>
 
 **Yesterday:**
-- Bullet points from session logs
+- Bullet points from <work_day> session logs
 
 **Today:**
-- Next steps / open threads
+- Plans for <standup_date> — next steps, open threads to pick up
 
 **Blockers:** None (or list any)
 ```
 
-**Weekend/multi-day format:** If work was done across multiple days since the last standup, list each day separately instead of "Yesterday":
+**Multi-day format** — use whenever more than one work day rolls into the standup (Mon's standup recapping Fri+weekend work, post-holiday standup, etc.). List each day separately instead of "Yesterday":
 ```
 ### <author>
 
 **Friday (2026-03-28):**
 - Bullet points from Friday's session logs
 
-**Saturday (2026-03-29):**
-- Bullet points from Saturday's session logs
+**Monday (2026-03-31):**
+- Bullet points from Monday's session logs (e.g., post-holiday)
 
 **Today:**
-- Next steps / open threads
+- Plans for <standup_date>
 
 **Blockers:** None (or list any)
 ```
 
 **Rules:**
-- Check daily logs since the last standup date — if multiple days have logs, include all of them
+- Check daily logs since the last standup date — if multiple days have logs, include all of them in multi-day format
 - Only include days that have session logs (skip days with no work)
-- On Monday with no weekend work, "Yesterday" means Friday — no special handling needed
+- "Yesterday" only fits when exactly one work day rolls into the standup. Otherwise use named-day labels.
+- "Today" describes plans for `<standup_date>`, not actuals from `<work_day>`
 - Each author owns their section — append yours, never edit another author's section
 
 ### 5. Update the vault index
