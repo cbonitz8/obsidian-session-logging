@@ -572,16 +572,23 @@ obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="##
 - If you're uncertain whether a date is a holiday, ask the user before creating the file.
 - Use the computed `<standup_date>` as `YYYY-MM-DD` in every command below.
 
-- [ ] Create if it doesn't exist:
+- [ ] **Determine whether the standup already exists before creating.** Standups are one file per day shared by the whole team, so a duplicate is easy to create when your local vault is behind the server. Resolve existence in this order:
+
+  1. **Local check** — is the file already in the vault?
+     ```bash
+     # Also catches collision variants like "2026-04-22 (abc123).md"
+     ls "<vault_path>/Standups/" | grep "<standup_date>"
+     ```
+     Found → skip creation; go straight to the per-author section step below.
+
+  2. **Not local → query the sync backend directly (authoritative).** If the vault syncs to a backend that an available MCP can query (e.g. a ServiceNow MCP fronting the sync plugin's table), query it for a standup dated `<standup_date>`. This is authoritative — it settles existence without a manual sync round-trip. The concrete connection details (instance, table, category/title field names) live in your environment config (e.g. CLAUDE.md), not here, so the check stays portable.
+     - **Exists on server** → a teammate created it and you just haven't pulled it. Tell the user who and when (from the record's updated-by / updated-on), ask them to **sync the plugin to pull it down**, then continue to the per-author section step — so the plugin's locking/merge reconciles your section instead of you writing a colliding local file. **STOP until the user confirms the sync.**
+     - **Not on server** → it truly doesn't exist anywhere → safe to create now (step 3).
+
+  3. **No queryable backend available → fall back to the manual gate.** Ask the user to sync the plugin and confirm no one else created it: *"No standup for `<standup_date>` found locally and I can't check the server. Please sync and confirm no one else created it, then I'll create it."* **STOP until confirmed.**
+
+  Create only once existence is ruled out (server returned none, or the user confirmed after syncing):
   ```bash
-  # Check if the standup-date file exists (also check for collision variants like "2026-04-22 (abc123).md")
-  ls "<vault_path>/Standups/" | grep "<standup_date>"
-
-  # If not found locally, ask the user to sync Snobby first:
-  # "No standup for <standup_date> found locally. Please sync Snobby to check if another user already created one, then re-run update logs."
-  # STOP HERE — do not create until user confirms sync is done.
-
-  # Only create if still not found after user syncs:
   obsidian vault="X" create path="Standups/<standup_date>.md" template="Standup"
   obsidian vault="X" property:set name="sn_sys_id" value="" path="Standups/<standup_date>.md"
   obsidian vault="X" property:set name="sn_synced" value="false" path="Standups/<standup_date>.md"
