@@ -1,39 +1,39 @@
 ---
 name: obsidian-session-logging
-description: Use when starting a new conversation, wrapping up a work session, or when the user asks to update logs, generate standup notes, create session entries, lint the vault, rebuild the index, or archive old files. Also use when beginning work on a project to read recent context.
+description: Use when starting a work session (to load recent project context), wrapping one up, or when the user asks to write session or standup notes, lint the vault, or rebuild the index.
 ---
 
 # Obsidian Session Logging
 
 Track work sessions, daily progress, and standup notes in an Obsidian vault.
 
+Reference lives in three disclosed files, loaded on demand:
+- **[SCHEMAS.md](SCHEMAS.md)** — frontmatter schema for every file type. Read before creating or editing a file's frontmatter.
+- **[REFERENCE.md](REFERENCE.md)** — vault structure, naming conventions, tags, backlink rules. Read when placing a new file or wiring links.
+- **[FALLBACK.md](FALLBACK.md)** — built-in-tool equivalents for every CLI command. Read only when the CLI is unavailable.
+
 ## CLI Configuration
 
-This skill uses the **Obsidian CLI** (bundled with Obsidian 1.12+) as the primary interface for vault operations.
+This skill uses the **Obsidian CLI** (bundled with Obsidian 1.12+) as its primary interface.
 
-- **CLI binary:** Detect by platform:
+- **CLI binary** — detect by platform:
   - **macOS:** `/Applications/Obsidian.app/Contents/MacOS/obsidian`
   - **Windows:** `%LOCALAPPDATA%\Obsidian\Obsidian.exe`
-  - **Linux:** `obsidian` (if on PATH), or check `/usr/bin/obsidian`, `/snap/bin/obsidian`
-  - If none found, try `obsidian` as a bare command (works when on PATH)
-- **Vault name:** Read from `CLAUDE.md` → `Obsidian Vault Integration` → `Vault name`
-- **Vault path:** Read from `CLAUDE.md` → `Obsidian Vault Integration` → `Vault path`
+  - **Linux:** `obsidian` on PATH, else `/usr/bin/obsidian`, `/snap/bin/obsidian`
+  - If none found, try `obsidian` as a bare command
+- **Vault name / path** — read from CLAUDE.md → `Obsidian Vault Integration`
 
-All CLI commands use `vault="<name>"` (e.g., `vault="My Vault"`). If the CLI is unavailable (Obsidian not running, binary not found), fall back to Read/Write/Edit/Glob/Grep — see **Fallback Mode** at the end.
+All commands use `vault="<name>"` (e.g., `vault="My Vault"`). If the CLI is unavailable (Obsidian not running, binary not found), switch to [FALLBACK.md](FALLBACK.md).
 
 ### Author Detection
 
-The current user's identity is derived from the Snobby sync plugin settings. At session start, read:
+The current user's identity comes from the Snobby sync plugin. At session start, read:
 
 ```bash
 cat "<vault_path>/.obsidian/plugins/snobby/data.json"
 ```
 
-Extract `settings.userDisplayName` and use the **first name only** (split on space, take index 0) as `<author>` for all operations — session logs, daily logs, standup sections, etc.
-
-- Example: `"userDisplayName": "Caleb Bonitz"` → author is `Caleb`
-- If snobby settings are missing or `userDisplayName` is empty, fall back to the `$CLAUDE_AUTHOR` environment variable
-- If neither source is available, prompt the user for their name before creating any authored content
+Extract `settings.userDisplayName` and use the **first name only** (split on space, index 0) as `<author>` everywhere — session logs, daily logs, standup sections. Example: `"Caleb Bonitz"` → `Caleb`. If snobby settings are missing or empty, fall back to `$CLAUDE_AUTHOR`; if neither exists, prompt the user for their name before creating authored content.
 
 ### CLI Command Reference
 
@@ -72,300 +72,210 @@ obsidian vault="X" delete path="<path>"
 - Quote values with spaces: `value="My Project"`
 - Use `\n` for newlines in `content=` values
 - `file=` resolves by name (like wikilinks); `path=` is exact relative path
-- **Mid-file edits** still require Read + Edit tools (CLI has no edit/replace command)
+- **Mid-file edits** need Read + Edit tools (the CLI has no edit/replace command)
 
-## Vault Structure
+## The create recipe
 
-Read vault path from the project's CLAUDE.md or memory. Expected structure:
+A file made with `create template=` inherits **all** of the template's frontmatter, including its sync identifiers (`sn_sys_id`, `sn_category: template`). Left as-is, the new file collides with the template's remote record and lands in the wrong folder on sync. So **immediately after every `create template=`**, reset the three sync fields:
 
-```
-<vault>/
-  <project>/
-    Project Overviews/
-      <Project Name> Overview.md  # Source of truth for current state
-    Session Logs/
-      description.md
-    Design Specs/
-      plan-name.md
-  Daily Logs/                     # Top-level, not per-project
-    description.md
-  Standups/                       # One file per day, shared by all authors
-    YYYY-MM-DD.md
-  Index/                          # Vault-wide file catalog for LLM navigation
-    index.md
-  Resources/                      # Reusable component docs
-    Component Name.md
-  Templates/                      # Obsidian templates
-  Project Overviews/
-    ✍️ Dashboard.md               # Rolling dashboard with dataview queries
-```
-
-**Key structure rules:**
-- Projects are **top-level folders** — no `Projects/` prefix
-- Daily Logs are **top-level** — no `Areas/` prefix
-- Overviews live at `<project>/Project Overviews/<Project Name> Overview.md`
-- Component docs live directly in `Resources/` — no `Components/` subfolder
-- **No Archive folder** — archived docs stay in their project folder, marked via frontmatter (e.g., `tags: "archived"` or sync plugin tags)
-- `Session Logs/` (not `Sessions/`) and `Design Specs/` (not `Plans/`)
-
-## Naming Conventions
-
-| File Type | Pattern | Example |
-|-----------|---------|---------|
-| Session log | `<brief description>.md` | `API refactor + auth flow.md` |
-| Daily log | `<brief description>.md` | `API refactor + deployment.md` |
-| Design spec | `<kebab-name>.md` | `auth-migration-plan.md` |
-| Standup | `YYYY-MM-DD.md` | `2026-04-06.md` |
-| Project overview | `<Project Name> Overview.md` | `My Project Overview.md` |
-| Component doc | `<Display Name>.md` | `Data Grid Component.md` |
-| Index | `index.md` | `index.md` |
-
-- **No dates in filenames** — dates are tracked in frontmatter (`date:` property). Old files with dates in the name are legacy; new files omit the date entirely.
-- Session/daily descriptions: lowercase, concise, use `+` to join topics
-- Plan names: kebab-case
-- Overview files are named with the project prefix so they're distinguishable in flat views (search results, browser views)
-
-## Templates
-
-Templates live in the `Templates/` folder and are used via the CLI's `create template=` parameter. After creating a file from a template, use `property:set` to fill in dynamic values.
-
-**Available templates:** Session Log, Daily Log, Design Spec, Standup, Project Overview, Component Doc
-
-**Creation workflow:**
 ```bash
-# 1. Create file from template ({{date}} resolves automatically)
-obsidian vault="X" create path="<project>/Session Logs/<name>.md" template="Session Log"
-
-# 2. IMPORTANT: Clear inherited sn_sys_id and set correct sn_category so this
-#    file gets its own SN record and lands in the right folder on sync
-obsidian vault="X" property:set name="sn_sys_id" value="" path="<project>/Session Logs/<name>.md"
-obsidian vault="X" property:set name="sn_synced" value="false" path="<project>/Session Logs/<name>.md"
-obsidian vault="X" property:set name="sn_category" value="session_log" path="<project>/Session Logs/<name>.md"
-
-# 3. Set dynamic frontmatter properties
-obsidian vault="X" property:set name="project" value="Project Name" path="<project>/Session Logs/<name>.md"
-obsidian vault="X" property:set name="author" value="<author>" path="<project>/Session Logs/<name>.md"
-obsidian vault="X" property:set name="sn_project" value="Project Name" path="<project>/Session Logs/<name>.md"
-
-# 4. Fill in the Session Notes section (already exists from template)
-obsidian vault="X" edit path="<project>/Session Logs/<name>.md" find="## Session Notes\n" replace="## Session Notes\n\nStarting work on..."
+obsidian vault="X" property:set name="sn_sys_id" value="" path="<path>"
+obsidian vault="X" property:set name="sn_synced" value="false" path="<path>"
+obsidian vault="X" property:set name="sn_category" value="<category>" path="<path>"
 ```
 
-**WARNING (if using sync plugin):** Templates may contain sync identifiers (e.g., `sn_sys_id`) and `sn_category: template`. The `create template=` command copies ALL frontmatter. You MUST clear `sn_sys_id` and set the correct `sn_category` immediately after creation, or the new file will collide with the template's remote record and land in the wrong folder on sync.
+Then set the file's own dynamic properties (`project`, `author`, `sn_project`, …) per its schema in [SCHEMAS.md](SCHEMAS.md). Wherever a step below says **run the create recipe with `sn_category=<x>`**, it means these three resets plus the type's dynamic properties. If the vault has no sync plugin, the resets are harmless no-ops — still run them.
 
-## Frontmatter Properties (Schema)
+**Templates** live in `Templates/`: Session Log, Daily Log, Design Spec, Standup, Project Overview, Component Doc, Index. A template's `{{date}}` placeholder resolves automatically on `create`.
 
-Every file has standardized YAML frontmatter. These properties are the **schema** — tooling and Dataview queries depend on them. Always include all required fields.
+## Starting a Session
 
-**Sync fields (optional — only if using a sync plugin like Snobby):**
-- `sn_category` — maps to remote document category (see category reference below)
-- `sn_project` — maps to remote project field
-- `sn_tags` — comma-separated tags (e.g., "archived", "complete")
-- `sn_synced: false` — set to false on creation/edit, sync plugin sets to true after push
+**Checklist — run at session start:**
 
-**Category reference:** The `sn_category` values listed in the schemas below are the built-in defaults. New categories may be added in ServiceNow at any time. To discover all available categories and their values, read the sync plugin's settings file:
+- [ ] **Read the vault index** for a fast overview:
+  ```bash
+  obsidian vault="X" read path="Index/index.md"
+  ```
+  If it doesn't exist yet, skip — you'll create it at wrap-up.
+
+- [ ] **Read the most recent daily log:**
+  ```bash
+  obsidian vault="X" files folder="Daily Logs"
+  obsidian vault="X" read path="Daily Logs/<most recent>.md"
+  ```
+
+- [ ] **Read the project overview** for each project you'll touch:
+  ```bash
+  obsidian vault="X" read path="<project>/Project Overviews/<Project Name> Overview.md"
+  ```
+
+- [ ] **Verify claims.** Cross-check the daily log's "Open Threads" and project status against the overview and actual code/instance state. Overviews and logs drift — a prior session may have finished work without updating the overview. Correct the overview (Read + Edit for mid-file changes) **before** reporting status to the user.
+
+- [ ] **Scan stale checkboxes** across all active project files, then check off anything already done and close finished plans:
+  ```bash
+  obsidian vault="X" tasks todo verbose
+  obsidian vault="X" task done path="<path>" line=<n>
+  obsidian vault="X" property:set name="status" value="completed" path="<path>"
+  ```
+
+- [ ] **If a new day, create today's session log** (see [SCHEMAS.md](SCHEMAS.md) → Session Log):
+  ```bash
+  obsidian vault="X" create path="<project>/Session Logs/<description>.md" template="Session Log"
+  # run the create recipe with sn_category=session_log, then:
+  obsidian vault="X" property:set name="project" value="<Project Name>" path="<...>.md"
+  obsidian vault="X" property:set name="author" value="<author>" path="<...>.md"
+  obsidian vault="X" property:set name="sn_project" value="<Project Name>" path="<...>.md"
+  ```
+
+## During a Session
+
+**Task tracking in plans:**
+- Plans carry a checkbox (`- [ ]`) per discrete step
+- Check off each step **immediately** after completing it — not at wrap-up:
+  ```bash
+  obsidian vault="X" task done path="<project>/Design Specs/<plan>.md" line=<n>
+  ```
+- When every step is done: `property:set name="status" value="completed"`
+- `#post-deploy` tasks stay open until confirmed on the target instance
+
+**Task tracking in session logs:**
+- Keep an **Open Issues** section with checkboxes for work identified but not finished
+- Check items off as they resolve, even across sessions — go back and close old ones
+
+**Writing to session logs.** Templates ship placeholder headers (`## Summary`, `## Changes`, …). The CLI has no find/replace, so fill a placeholder **in place with the Read + Edit tools** — replace `## Summary\n` with the header plus its content. Reserve the CLI's `append` for genuinely new sections not in the template (appending an existing header would duplicate it):
 ```bash
-cat "<vault>/.obsidian/plugins/snobby/data.json" | grep -A 50 '"categories"'
-```
-The `categories` object maps SN values (e.g., `story_time`) to folder names (e.g., `"Story Time"`). Use the SN value for `sn_category`. If a category you need isn't in the mapping, the sync plugin will auto-derive the folder name from the value (e.g., `story_time` → "Story Time").
-
-### Session Log
-```yaml
----
-project: "Project Name"         # required — must match overview's project name exactly
-date: YYYY-MM-DD                # required
-type: session                   # required — literal "session"
-author: <identifier>            # required — consistent per person (e.g., "alice", "bob")
-status: in-progress|complete    # required — set to "complete" at wrap-up
-plan: "[[path/to/plan]]"        # optional — link to plan being executed
-tags: []                        # optional — action tags (see Tags section)
-records:                        # optional — instance records touched
-  - table: table_name
-    sys_id: abc123
-    name: RecordName
-    action: modified|created|deleted
-sn_category: session_log
-sn_project: "Project Name"
-sn_tags: ""
-sn_synced: false
----
-```
-- Append after each significant change
-- Tag post-deploy actions with `#post-deploy` immediately
-- Include changed files at end of session
-- Set `status: complete` during wrap-up checklist
-
-### Daily Log
-```yaml
----
-date: YYYY-MM-DD                # required
-type: daily-log                 # required — literal "daily-log"
-author: <identifier>            # required
-projects:                       # required — list of projects touched
-  - "Project Name"
-sn_category: daily_log
-sn_project: ""
-sn_tags: ""
-sn_synced: false
----
-```
-- **Sessions**: link to all session logs from the day
-- **Projects Active**: heading per project linking to its overview, brief current state
-- **Open Threads / Next Steps**: what the next session picks up
-- Daily logs are a **context compass** — for implementation details, read the overview and code
-
-### Design Spec (Plan)
-```yaml
----
-project: "Project Name"         # required
-type: plan                      # required — literal "plan"
-status: active|completed|superseded  # required
-date: YYYY-MM-DD                # required — creation date
-author: <identifier>            # required
-qa: true                        # optional — set on QA testing guides/checklists
-superseded_by: "[[link]]"       # required if status: superseded
-sn_category: design_spec
-sn_project: "Project Name"
-sn_tags: ""
-sn_synced: false
----
-```
-- The overview links to the active plan
-- Session logs reference plans via `plan:` frontmatter
-- When complete: set `status: completed`
-- When replaced: set `status: superseded` + `superseded_by:` link
-- **QA docs**: Plans that are testing guides for QA (not implementation tasks) must include `qa: true` in frontmatter. This excludes their checkboxes from the dashboard's Open Tasks and Post-Deploy Actions queries.
-
-### Project Overview
-```yaml
----
-project: "Project Name"         # required — canonical name, used for matching
-status: active                  # required — active|complete|on-hold
-type: project                   # required — literal "project" or "area"
-sn_category: project_overview
-sn_project: "Project Name"
-sn_tags: ""
-sn_synced: false
----
+# new sections only:
+obsidian vault="X" append path="<session>.md" content="## <new heading>\n\n<content>"
 ```
 
-**`type: area`** — Use for ongoing responsibilities that don't have an end date (e.g., "Platform Maintenance", data quality work, shared utility upkeep). Areas use the same folder structure as projects (overview + Session Logs/ + Design Specs/) but are never "complete" — their status stays `active`. Session logs, daily logs, and standups reference areas exactly like projects.
+**Filing valuable synthesis.** When a conversation produces reusable analysis — cross-project comparisons, architectural decisions, research findings — save it to the vault rather than let it die in chat. Use a Design Spec (`type: plan`) for project-specific analysis, a Resource (`type: component`) for cross-project knowledge. Ask first: "This analysis seems worth keeping — want me to save it to the vault?"
 
-**Overview content — what belongs:**
-- **What it is** — what the project/area does, who uses it, what problem it solves
-- **How it works** — high-level user-facing workflow (not implementation internals)
-- **Ecosystem** — how it connects to other projects, with `[[wikilinks]]`
-- **Current status** — one scannable line summarizing where things stand
+**Keeping the overview current.** After finishing a feature or phase, update the Status section immediately (Read + Edit) while context is fresh — don't defer to wrap-up. Status is a single scannable sentence. Keep overviews to what/how/ecosystem; field tables, API lists, and implementation detail go in the technical reference doc (see [SCHEMAS.md](SCHEMAS.md) → Project Overview).
 
-**Overview content — what does NOT belong:**
-- Field-level data model tables
-- REST API endpoint lists
-- Business rule firing orders
-- Code snippets or implementation details
-- Phase-by-phase build history
-- Plans tables (plans are discoverable via backlinks and session logs)
+## Wrapping Up
 
-**Technical detail** goes in a separate reference doc at `<project>/Design Specs/<project-name>-technical-reference.md` (`type: plan`, `status: active`). Link to it from the overview's Ecosystem section. Only create reference docs for projects with substantial technical detail (data models, APIs, architecture).
+**Checklist — run at session end (every item is mandatory):**
 
-### Standup
-```yaml
----
-date: YYYY-MM-DD                # required — the meeting day, NOT the work day
-type: standup                   # required — literal "standup"
-sn_category: standup
-sn_project: ""
-sn_tags: ""
-sn_synced: false
----
+### 1. Verify completed work
+- [ ] Re-read every overview you touched this session
+- [ ] Confirm status lines match what was actually accomplished, not what was planned
+- [ ] Check off stale checkboxes across all active projects (`tasks todo verbose`); set plan `status: completed` when all steps are done
+- [ ] Catch stale claims: "needs testing" when tests passed, "in progress" when done, phases listed as upcoming that are finished
+
+### 2. Session log
+- [ ] Fill each placeholder section — Summary, Changes, Open Issues, Changed Files — **in place with the Read + Edit tools** (the CLI has no find/replace; `append` would duplicate the existing headers). Replace `## Summary\n` with the header plus its content, and so on for each.
+- [ ] Set status complete: `obsidian vault="X" property:set name="status" value="complete" path="<session>"`
+
+### 3. Daily log
+- [ ] Create from template (see [SCHEMAS.md](SCHEMAS.md) → Daily Log):
+  ```bash
+  obsidian vault="X" create path="Daily Logs/<brief description>.md" template="Daily Log"
+  # run the create recipe with sn_category=daily_log, then:
+  obsidian vault="X" property:set name="author" value="<author>" path="Daily Logs/<name>.md"
+  obsidian vault="X" property:set name="projects" value="Project1,Project2" type=list path="Daily Logs/<name>.md"
+  ```
+- [ ] Append session links and **freshly verified** per-project state (not copied from a prior daily log):
+  ```bash
+  obsidian vault="X" append path="Daily Logs/<name>.md" content="## Sessions\n\n- [[<project>/Session Logs/<session>|description]]\n\n## Projects Active\n\n### [[<project>/Project Overviews/<Name> Overview|Project Name]]\n<verified current state>\n\n## Open Threads / Next Steps\n\n- <what the next session picks up>"
+  ```
+
+### 4. Standup notes
+
+**Compute the standup date FIRST, before any file operation.** The standup file is dated for the meeting day = the **next business day after the work being recapped**.
+
+- `<work_day>` = `currentDate` from the environment (the day work happened — typically today)
+- `<standup_date>` = next business day after `<work_day>`, skipping Saturday, Sunday, and known holidays:
+  - Work Mon → standup Tue; work Fri → standup **Mon**; work pre-holiday → standup first business day after
+- If unsure whether a date is a holiday, ask the user before creating the file
+- Use the computed `<standup_date>` as `YYYY-MM-DD` in every command below
+
+- [ ] **Rule out an existing standup before creating** — one file per day is shared by the whole team, so a duplicate is easy to make when your local vault is behind the server. Resolve in order:
+
+  1. **Local check** — is the file already in the vault?
+     ```bash
+     # Also catches collision variants like "2026-04-22 (abc123).md"
+     ls "<vault_path>/Standups/" | grep "<standup_date>"
+     ```
+     Found → skip creation, go to the per-author step.
+
+  2. **Not local → query the sync backend directly (authoritative).** If the vault syncs to a backend an available MCP can query (e.g. a ServiceNow MCP fronting the sync plugin's table), query it for a standup dated `<standup_date>` — this settles existence without a manual sync round-trip. Connection details (instance, table, field names) live in your environment config (CLAUDE.md), not here.
+     - **Exists on server** → a teammate made it and you haven't pulled it. Tell the user who and when (from updated-by / updated-on), ask them to **sync the plugin to pull it down**, then continue to the per-author step so the plugin's merge reconciles your section. **STOP until the user confirms the sync.**
+     - **Not on server** → safe to create (below).
+
+  3. **No queryable backend → manual gate.** Ask: *"No standup for `<standup_date>` found locally and I can't check the server. Please sync and confirm no one else created it, then I'll create it."* **STOP until confirmed.**
+
+  Create only once existence is ruled out:
+  ```bash
+  obsidian vault="X" create path="Standups/<standup_date>.md" template="Standup"
+  # run the create recipe with sn_category=standup, then:
+  obsidian vault="X" property:set name="date" value="<standup_date>" path="Standups/<standup_date>.md"
+  ```
+
+- [ ] **Own exactly one `### <author>` section; preserve everyone else's.** Read the standup first. If your section exists, Read + Edit to **add** bullets — never replace content, never append a second heading like `### Alice (Evening)`:
+  - **Yesterday / prior days:** keep existing bullets; add a new day section only for work on days not yet listed
+  - **Today:** keep all existing bullets, append new ones for work since your last update
+  - **Blockers:** update only when status changed
+  ```bash
+  # Section does NOT exist yet — append it:
+  obsidian vault="X" append path="Standups/<standup_date>.md" content="### <author>\n\n**Yesterday:**\n- Bullet points\n\n**Today:**\n- Next steps\n\n**Blockers:** None"
+  ```
+
+**Standard format** (one work day rolls into the standup — e.g. Tue recaps Mon):
 ```
-- One file per **standup meeting day**, named by that date: `Standups/YYYY-MM-DD.md`
-- Shared by all team members — each person adds their section under the date
-- No `author` field in frontmatter (multiple authors per file)
-- Dashboard links to the latest standup via dataview query
+### <author>
 
-**Standup date = next business day after the work being recapped.** A standup recaps work done on prior business day(s) under "Yesterday" and lays out plans for the standup date itself under "Today". Work done Monday lands on Tuesday's standup; work done Friday lands on Monday's standup.
+**Yesterday:**
+- Bullet points from <work_day> session logs
 
-- No standup files for Saturday or Sunday.
-- No standup files for known holidays — the next-business-day standup absorbs the gap.
-- If multiple work days roll into one standup (Friday→Monday, pre-holiday→post-holiday), use the multi-day format with explicit day labels (see "Wrapping Up → Standup notes").
+**Today:**
+- Plans for <standup_date> — next steps, open threads to pick up
 
-### Component Doc
-```yaml
----
-type: component                 # required — literal "component"
-name: "Component Name"          # required — display name
-sn_category: reference
-sn_project: ""
-sn_tags: ""
-sn_synced: false
----
+**Blockers:** None (or list any)
 ```
 
-### Index
-```yaml
----
-type: index                     # required — literal "index"
-sn_category: index
-sn_project: ""
-sn_tags: ""
-sn_synced: false
----
+**Multi-day format** — use whenever more than one work day rolls in (Mon recapping Fri+weekend, post-holiday, …). Label each day instead of "Yesterday":
 ```
-- Single file: `Index/index.md`
-- Auto-maintained by the LLM — not manually edited
-- See **Vault Index** section for format and update workflows
+### <author>
 
-## Tags
+**Friday (2026-03-28):**
+- Bullet points from Friday's session logs
 
-Tags mark **action items** on task checkboxes. Keep the set small — every tag should power a query or workflow.
+**Monday (2026-03-31):**
+- Bullet points from Monday's session logs
 
-| Tag | Meaning | Use on |
-|-----|---------|--------|
-| `#post-deploy` | Requires action on the target instance after code deploy | Task checkboxes in session logs, plans |
-| `#blocked` | Cannot proceed until an external dependency is resolved | Task checkboxes; include what it's blocked on |
-| `#needs-review` | Requires review from another team member or stakeholder | Task checkboxes |
-| `#follow-up` | Not urgent, but should be revisited in a future session | Task checkboxes |
+**Today:**
+- Plans for <standup_date>
 
-**Rules:**
-- Tags go on the checkbox line, not headings: `- [ ] Fix the thing #post-deploy`
-- Only use defined tags — don't invent ad-hoc tags
-- Tags are for tasks, not for categorization (that's what `type:` frontmatter is for)
+**Blockers:** None (or list any)
+```
 
-## Backlinks
+- Check daily logs since the last standup; include every day that has session logs (skip days with none)
+- "Yesterday" fits only when exactly one work day rolls in — otherwise use named-day labels
+- "Today" describes plans for `<standup_date>`, not actuals from `<work_day>`
 
-Backlinks are critical for discoverability. An AI scanning the vault uses backlinks to trace relationships between files. Always use `[[wikilinks]]` — the more connections, the easier it is to gather context.
+### 5. Update the vault index
+- [ ] Follow the **Incremental Update** workflow under Vault Index below
 
-Use `obsidian vault="X" backlinks path="<path>"` to discover what links to a file.
+### 6. Archive handling
+Archived status is frontmatter, not a folder move:
+```bash
+obsidian vault="X" property:set name="sn_tags" value="archived" path="<path>"
+obsidian vault="X" property:set name="status" value="completed" path="<path>"
+```
+The sync plugin handles archive status if configured.
 
-### Required structural backlinks
-These are mandatory and create the core navigation graph:
-- Daily log → session logs: `[[<project>/Session Logs/...|description]]`
-- Daily log → project overviews: `[[<project>/Project Overviews/<Project Name> Overview|Project Name]]`
-- Session log → plan (frontmatter): `plan: "[[<project>/Design Specs/...]]"`
-- Plan superseded → replacement: `superseded_by: "[[...]]"`
-- Plan replacement → predecessor: `Supersedes: [[...]]`
-- Overview → technical reference (if exists): link in Ecosystem section
-- Overview → related projects: `[[wikilinks]]` in Ecosystem section
-
-### Contextual backlinks
-Add these throughout body content whenever referencing something that exists in the vault:
-- **Component docs**: `[[Resources/Data Grid]]`, `[[Resources/Date Picker]]`
-- **Cross-project references**: `[[Onboarding/Project Overviews/Onboarding Overview|Onboarding]]`
-- **Related sessions**: `[[API Project/Session Logs/Auth refactor + tests|yesterday's session]]`
-- **Other projects' plans**: if a plan in one project informed decisions in another, link it
-
-### In overviews
-- Link to related projects in the Ecosystem section
-- Link to the technical reference doc (if one exists) in the Ecosystem section
-- Do NOT maintain a Plans table — plans are discoverable via backlinks
+### 7. Post-session verification
+- [ ] Backlinks in active files point to correct paths
+- [ ] No overview holds stale status claims or implementation detail
+- [ ] All new/modified files have `sn_synced: false` (the plugin sets this on edit)
 
 ## Vault Index
 
-The vault maintains an index at `Index/index.md` — a flat catalog of all significant files with one-line summaries. Gives the LLM a single-read overview of the vault without scanning every folder.
+`Index/index.md` is a flat catalog of every significant file with a one-line summary — a single-read overview of the vault that saves the LLM from scanning every folder.
 
 ### Format
 
-Entries grouped by type. One line per entry: wikilink + summary + status. Active items sort before completed within each group. Alphabetical within groups.
+Entries grouped by type, one line each: wikilink + summary + status. Active items sort before completed within a group; alphabetical within groups.
 
 ```markdown
 ## Active Projects
@@ -390,321 +300,71 @@ Entries grouped by type. One line per entry: wikilink + summary + status. Active
 - [[Project/Project Overviews/Project Overview|Project Name]] — Completed YYYY-MM-DD
 ```
 
-**Rules:**
-- One line per entry, keep summaries concise
-- Session logs and daily logs: only the last 2 weeks — older entries removed during updates
+- One line per entry, summaries concise, written from the file's current content (not copied from stale sources)
+- Session and daily logs: only the last 2 weeks — drop older entries on update
 - Completed/archived projects: one line each, no sub-entries for their specs/sessions
-- Summaries written from the file's current content, not copied from stale sources
 
 ### Incremental Update (at wrap-up)
 
-Run as part of the wrap-up checklist. Only touch entries for files created or modified this session.
+Touch only entries for files created or modified this session.
 
 1. Read `Index/index.md`
-2. For each file created this session: add a new entry in the appropriate group
-3. For each file modified this session: update the entry's summary/status if changed
-4. Remove any session/daily log entries older than 2 weeks
-5. Edit the index using find/replace on individual lines — do NOT rewrite the whole file
+2. For each file created this session: add an entry in the right group
+3. For each file modified this session: update its summary/status if changed
+4. Remove any session/daily log entry older than 2 weeks
+5. Edit individual lines with find/replace — do **not** rewrite the whole file
 
 ### Full Rebuild
 
-Only run when lint identifies significant index drift, or on explicit user request ("rebuild the index"). Scans the entire vault and regenerates `Index/index.md` from scratch.
+Run only when lint reports significant index drift, or on explicit request ("rebuild the index"). Regenerates the file from scratch.
 
-1. List all project folders: `files folder=` for each top-level project
+1. List all project folders (`files folder=` per top-level project)
 2. Read frontmatter from every overview, plan, and resource doc
-3. List recent session logs and daily logs (last 2 weeks)
-4. Generate the full index following the format above
-5. Write the complete file
+3. List recent session and daily logs (last 2 weeks)
+4. Generate the full index in the format above and write the complete file
 
-**Creating the index for the first time:**
+**First-time creation:**
 ```bash
 obsidian vault="X" create path="Index/index.md" template="Index"
-# If no Index template exists, use Write tool with full frontmatter
-obsidian vault="X" property:set name="sn_sys_id" value="" path="Index/index.md"
-obsidian vault="X" property:set name="sn_synced" value="false" path="Index/index.md"
-obsidian vault="X" property:set name="sn_category" value="index" path="Index/index.md"
+# If no Index template exists, use Write with full frontmatter, then:
+# run the create recipe with sn_category=index
 ```
-Then run the full rebuild workflow to populate it.
-
-## Starting a Session
-
-**Checklist — run at session start:**
-
-- [ ] **Read the vault index** for a quick overview of what exists:
-  ```bash
-  obsidian vault="X" read path="Index/index.md"
-  ```
-  If the index doesn't exist yet, skip this step and create it during wrap-up.
-
-- [ ] **Find and read the most recent daily log:**
-  ```bash
-  obsidian vault="X" files folder="Daily Logs"
-  obsidian vault="X" read path="Daily Logs/<most recent>.md"
-  ```
-
-- [ ] **Read the project overview** for any project you'll be working on:
-  ```bash
-  obsidian vault="X" read path="<project>/Project Overviews/<Project Name> Overview.md"
-  ```
-
-- [ ] **Verify claims**: cross-check the daily log's "Open Threads" and project status against the overview and actual code/instance state. If anything is stale, correct the overview **before** reporting status to the user (use Read + Edit for mid-file updates).
-
-- [ ] **Scan stale checkboxes** across all active project files:
-  ```bash
-  obsidian vault="X" tasks todo verbose
-  ```
-  Check off any items completed in prior sessions:
-  ```bash
-  obsidian vault="X" task done path="<path>" line=<n>
-  ```
-  Update plan statuses to `completed` if all steps are done:
-  ```bash
-  obsidian vault="X" property:set name="status" value="completed" path="<path>"
-  ```
-
-- [ ] **If a new day, create today's session log:**
-  ```bash
-  obsidian vault="X" create path="<project>/Session Logs/<description>.md" template="Session Log"
-  obsidian vault="X" property:set name="sn_sys_id" value="" path="<project>/Session Logs/<description>.md"
-  obsidian vault="X" property:set name="sn_synced" value="false" path="<project>/Session Logs/<description>.md"
-  obsidian vault="X" property:set name="sn_category" value="session_log" path="<project>/Session Logs/<description>.md"
-  obsidian vault="X" property:set name="project" value="<Project Name>" path="<project>/Session Logs/<description>.md"
-  obsidian vault="X" property:set name="author" value="<author>" path="<project>/Session Logs/<description>.md"
-  obsidian vault="X" property:set name="sn_project" value="<Project Name>" path="<project>/Session Logs/<description>.md"
-  ```
-
-**Why verify:** Daily logs and overviews drift. A previous session may have finished work but not updated the overview. Always read the source of truth (overview + code) and fix discrepancies before summarizing.
-
-## During a Session
-
-**Task tracking in plans:**
-- Plans should have checkboxes (`- [ ]`) for each discrete step
-- Check off steps **immediately** after completing — not at wrap-up:
-  ```bash
-  obsidian vault="X" task done path="<project>/Design Specs/<plan>.md" line=<n>
-  ```
-- When all plan steps done:
-  ```bash
-  obsidian vault="X" property:set name="status" value="completed" path="<project>/Design Specs/<plan>.md"
-  ```
-- `#post-deploy` tasks stay open until confirmed on target instance
-
-**Task tracking in session logs:**
-- Use an **Open Issues** section with checkboxes for work identified but not completed
-- Check off items as they're resolved (even across sessions — go back and check off old items)
-
-**Writing to session logs:**
-Templates include placeholder section headers (## Summary, ## Changes, etc.). When writing session content, use `edit` to replace the empty placeholder sections — do NOT use `append`, which would duplicate the headers at the end of the file.
-```bash
-# Use edit to fill in template sections:
-obsidian vault="X" edit path="<project>/Session Logs/<session>.md" find="## Summary\n" replace="## Summary\n\n<summary content>\n"
-
-# Only use append for genuinely new sections not in the template:
-obsidian vault="X" append path="<project>/Session Logs/<session>.md" content="## <new heading>\n\n<content>"
-```
-
-**Filing valuable synthesis:**
-- When a conversation produces reusable analysis — cross-project comparisons, architectural decisions, research findings — save it to the vault rather than letting it die in chat history
-- Use Design Spec (`type: plan`) for project-specific analysis
-- Use Resource (`type: component`) for cross-project reusable knowledge
-- Ask the user before filing: "This analysis seems worth keeping — want me to save it to the vault?"
-
-**Keeping the overview current:**
-- After completing a feature or phase: update the Status section immediately (use Read + Edit)
-- Don't defer overview updates to wrap-up — do it while the context is fresh
-- The status should be a single scannable sentence
-- Keep overviews focused on what/how/ecosystem — never add field tables, API lists, or implementation details (those go in the technical reference doc)
-
-## Wrapping Up
-
-**Checklist — run at session end (every item is mandatory):**
-
-### 1. Verify completed work
-- [ ] Re-read every overview you touched this session
-- [ ] Confirm status lines match what was actually accomplished (not what was planned)
-- [ ] **Check off stale checkboxes across all active projects:**
-  ```bash
-  obsidian vault="X" tasks todo verbose
-  ```
-  Any item completed (this session or prior) gets checked off. Update plan `status: completed` when all steps are done.
-- [ ] Scan for stale claims: "needs testing" when tests passed, "in progress" when completed, phases listed as upcoming that are done
-
-### 2. Session log
-- [ ] Fill in the template sections using edit (not append — sections already exist from template):
-  ```bash
-  # Fill Summary, Changes, Open Issues, Changed Files sections:
-  obsidian vault="X" edit path="<session>" find="## Summary\n" replace="## Summary\n\n<summary>\n"
-  obsidian vault="X" edit path="<session>" find="## Changes\n" replace="## Changes\n\n<changes>\n"
-  obsidian vault="X" edit path="<session>" find="## Open Issues\n" replace="## Open Issues\n\n<issues>\n"
-  obsidian vault="X" edit path="<session>" find="## Changed Files\n" replace="## Changed Files\n\n<files>\n"
-  ```
-- [ ] Set status to complete:
-  ```bash
-  obsidian vault="X" property:set name="status" value="complete" path="<project>/Session Logs/<session>.md"
-  ```
-
-### 3. Daily log
-- [ ] Create from template:
-  ```bash
-  obsidian vault="X" create path="Daily Logs/<brief description>.md" template="Daily Log"
-  obsidian vault="X" property:set name="sn_sys_id" value="" path="Daily Logs/<name>.md"
-  obsidian vault="X" property:set name="sn_synced" value="false" path="Daily Logs/<name>.md"
-  obsidian vault="X" property:set name="sn_category" value="daily_log" path="Daily Logs/<name>.md"
-  obsidian vault="X" property:set name="author" value="<author>" path="Daily Logs/<name>.md"
-  obsidian vault="X" property:set name="projects" value="Project1,Project2" type=list path="Daily Logs/<name>.md"
-  ```
-- [ ] Append session links and project summaries:
-  ```bash
-  obsidian vault="X" append path="Daily Logs/<name>.md" content="## Sessions\n\n- [[<project>/Session Logs/<session>|description]]\n\n## Projects Active\n\n### [[<project>/Project Overviews/<Name> Overview|Project Name]]\n<verified current state>\n\n## Open Threads / Next Steps\n\n- <what the next session picks up>"
-  ```
-- [ ] Summarize each project's **verified** current state (freshly confirmed, not copied from a previous daily log)
-
-### 4. Standup notes
-
-**Compute the standup date FIRST, before any file operations.** The standup file is dated for the meeting day, which is the **next business day after the work being recapped**.
-
-- Read `currentDate` from the environment (CLAUDE.md or system context).
-- `<work_day>` = `currentDate` (the day the work happened — typically today).
-- `<standup_date>` = next business day after `<work_day>`. Skip Saturday, Sunday, and any known holidays.
-  - Work day Mon → standup Tue.
-  - Work day Fri → standup **Mon** (skipping Sat/Sun).
-  - Work day pre-holiday → standup first business day after the holiday.
-- If you're uncertain whether a date is a holiday, ask the user before creating the file.
-- Use the computed `<standup_date>` as `YYYY-MM-DD` in every command below.
-
-- [ ] **Determine whether the standup already exists before creating.** Standups are one file per day shared by the whole team, so a duplicate is easy to create when your local vault is behind the server. Resolve existence in this order:
-
-  1. **Local check** — is the file already in the vault?
-     ```bash
-     # Also catches collision variants like "2026-04-22 (abc123).md"
-     ls "<vault_path>/Standups/" | grep "<standup_date>"
-     ```
-     Found → skip creation; go straight to the per-author section step below.
-
-  2. **Not local → query the sync backend directly (authoritative).** If the vault syncs to a backend that an available MCP can query (e.g. a ServiceNow MCP fronting the sync plugin's table), query it for a standup dated `<standup_date>`. This is authoritative — it settles existence without a manual sync round-trip. The concrete connection details (instance, table, category/title field names) live in your environment config (e.g. CLAUDE.md), not here, so the check stays portable.
-     - **Exists on server** → a teammate created it and you just haven't pulled it. Tell the user who and when (from the record's updated-by / updated-on), ask them to **sync the plugin to pull it down**, then continue to the per-author section step — so the plugin's locking/merge reconciles your section instead of you writing a colliding local file. **STOP until the user confirms the sync.**
-     - **Not on server** → it truly doesn't exist anywhere → safe to create now (step 3).
-
-  3. **No queryable backend available → fall back to the manual gate.** Ask the user to sync the plugin and confirm no one else created it: *"No standup for `<standup_date>` found locally and I can't check the server. Please sync and confirm no one else created it, then I'll create it."* **STOP until confirmed.**
-
-  Create only once existence is ruled out (server returned none, or the user confirmed after syncing):
-  ```bash
-  obsidian vault="X" create path="Standups/<standup_date>.md" template="Standup"
-  obsidian vault="X" property:set name="sn_sys_id" value="" path="Standups/<standup_date>.md"
-  obsidian vault="X" property:set name="sn_synced" value="false" path="Standups/<standup_date>.md"
-  obsidian vault="X" property:set name="sn_category" value="standup" path="Standups/<standup_date>.md"
-  obsidian vault="X" property:set name="date" value="<standup_date>" path="Standups/<standup_date>.md"
-  ```
-- [ ] **One section per author.** Read the standup first. If the author already has a `### <author>` section, use Edit to update it in place. **Do NOT replace existing content** — preserve all prior bullets and append new ones:
-  - **Yesterday/prior days:** Keep existing bullets. Only add new day sections if work was done on days not already listed.
-  - **Today:** Keep all existing bullets. Append new bullets for work done since the last update. Do not remove or rewrite prior bullets.
-  - **Blockers:** Update only if the blocker status has changed.
-  - Do NOT append a new heading like `### Alice (Evening)` or `### Alice (Late)`.
-  ```bash
-  # If author section does NOT exist yet, append it:
-  obsidian vault="X" append path="Standups/YYYY-MM-DD.md" content="### <author>\n\n**Yesterday:**\n- Bullet points\n\n**Today:**\n- Next steps\n\n**Blockers:** None"
-
-  # If author section ALREADY exists, use Read + Edit to ADD new bullets
-  # to the existing Today section — do NOT replace the whole section
-  ```
-- [ ] Do not overwrite other authors' sections
-
-**Standard format** (single work day rolls into the standup — e.g. Tue's standup recaps Mon work):
-```
-### <author>
-
-**Yesterday:**
-- Bullet points from <work_day> session logs
-
-**Today:**
-- Plans for <standup_date> — next steps, open threads to pick up
-
-**Blockers:** None (or list any)
-```
-
-**Multi-day format** — use whenever more than one work day rolls into the standup (Mon's standup recapping Fri+weekend work, post-holiday standup, etc.). List each day separately instead of "Yesterday":
-```
-### <author>
-
-**Friday (2026-03-28):**
-- Bullet points from Friday's session logs
-
-**Monday (2026-03-31):**
-- Bullet points from Monday's session logs (e.g., post-holiday)
-
-**Today:**
-- Plans for <standup_date>
-
-**Blockers:** None (or list any)
-```
-
-**Rules:**
-- Check daily logs since the last standup date — if multiple days have logs, include all of them in multi-day format
-- Only include days that have session logs (skip days with no work)
-- "Yesterday" only fits when exactly one work day rolls into the standup. Otherwise use named-day labels.
-- "Today" describes plans for `<standup_date>`, not actuals from `<work_day>`
-- Each author owns their section — append yours, never edit another author's section
-
-### 5. Update the vault index
-- [ ] Read `Index/index.md`
-- [ ] Add entries for any files created this session (session log, daily log, design specs, etc.)
-- [ ] Update entries for any files whose status or summary changed this session
-- [ ] Remove session/daily log entries older than 2 weeks
-- [ ] Use targeted edits on individual lines — do NOT rewrite the whole index
-
-### 6. Archive handling
-**No more moving files to Archive/.** Archived status is handled via frontmatter:
-```bash
-obsidian vault="X" property:set name="sn_tags" value="archived" path="<path>"
-obsidian vault="X" property:set name="status" value="completed" path="<path>"
-```
-Sync plugin handles archive status if configured — no file moves needed.
-
-### 7. Post-session verification
-- [ ] Backlinks in active files point to correct paths
-- [ ] No overview contains stale status claims or implementation details
-- [ ] All new/modified files have `sn_synced: false` (plugin handles this automatically on edit)
+Then run the rebuild workflow to populate it.
 
 ## Project Lifecycle
 
 | Event | Action |
 |-------|--------|
-| New project | Create from template, then set properties: |
+| New project | Create overview from template, run the create recipe, then set `project` + `sn_project` (below) |
+| New area | Same as a new project but set `type: area` — areas are ongoing, never "complete" |
+| Project completes | `property:set status=complete` + `property:set sn_tags=complete` |
+| New/modified component | Update `Resources/<name>.md` |
 
 ```bash
-# Create overview
 obsidian vault="X" create path="<project>/Project Overviews/<Project Name> Overview.md" template="Project Overview"
-obsidian vault="X" property:set name="sn_sys_id" value="" path="<project>/Project Overviews/<Project Name> Overview.md"
-obsidian vault="X" property:set name="sn_synced" value="false" path="<project>/Project Overviews/<Project Name> Overview.md"
-obsidian vault="X" property:set name="sn_category" value="project_overview" path="<project>/Project Overviews/<Project Name> Overview.md"
-obsidian vault="X" property:set name="project" value="<Project Name>" path="<project>/Project Overviews/<Project Name> Overview.md"
-obsidian vault="X" property:set name="sn_project" value="<Project Name>" path="<project>/Project Overviews/<Project Name> Overview.md"
+# run the create recipe with sn_category=project_overview, then:
+obsidian vault="X" property:set name="project" value="<Project Name>" path="<...> Overview.md"
+obsidian vault="X" property:set name="sn_project" value="<Project Name>" path="<...> Overview.md"
 ```
-
-| Event | Action |
-|-------|--------|
-| New area | Same as project but set `type: area` — areas are ongoing responsibilities, never "complete" |
-| Project completes | `property:set name="status" value="complete"` + `property:set name="sn_tags" value="complete"` |
-| New/modified component | Update `Resources/<name>.md` |
 
 ## Lint
 
-A read-only audit of vault health. Scans for issues, reports findings, and asks the user which to fix. Changes nothing until approved.
+A read-only audit of vault health. Scans, reports, asks which to fix — changes nothing until approved.
 
-**Trigger:** User says "lint the vault", "vault lint", "check vault health", or similar.
+**Trigger:** "lint the vault", "vault lint", "check vault health", or similar.
 
 ### Checks
 
 | Check | What it flags |
 |-------|--------------|
-| **Missing index entries** | Files in vault not listed in `Index/index.md` |
+| **Missing index entries** | Files in the vault not listed in `Index/index.md` |
 | **Stale index entries** | Index entries pointing to files that no longer exist |
-| **Orphan pages** | Files with zero backlinks (not linked from anywhere) |
+| **Orphan pages** | Files with zero backlinks |
 | **Stale overviews** | Overview status claims that don't match actual project state |
 | **Unclosed plans** | All tasks checked off but `status` still `active` |
 | **Unclosed sessions** | `status: in-progress` on session logs from past days |
 | **Missing frontmatter** | Required fields absent for the file's `type` |
-| **Broken wikilinks** | Links to files that don't exist in the vault |
+| **Broken wikilinks** | Links to files that don't exist |
 | **Missing required backlinks** | Daily logs without session links, sessions without plan links |
 
 ### Workflow
@@ -722,44 +382,20 @@ A read-only audit of vault health. Scans for issues, reports findings, and asks 
    ### Unclosed Sessions (1)
    - Project/Session Logs/old session.md — status: in-progress, date: 2026-04-25
 
-   ### Stale Index Entries (1)
-   - [[Deleted/File|old entry]] — file no longer exists
-
    ✅ No issues: orphan pages, broken wikilinks, missing frontmatter
    ```
 3. Ask: "Want me to fix all, some, or none of these?"
 4. Fix only what the user approves:
-   - **Missing index entries** → add them to index
+   - **Missing index entries** → add to index
    - **Stale index entries** → remove from index
    - **Unclosed sessions** → set `status: complete`
    - **Unclosed plans** → set `status: completed`
    - **Missing frontmatter** → add required fields with sensible defaults
-   - **Stale overviews** → read current state and update status line
-   - **Broken wikilinks** → report only (can't auto-fix without knowing intent)
-   - **Orphan pages** → report only (user decides if they need linking)
-   - **Missing required backlinks** → report only (user decides)
+   - **Stale overviews** → read current state, update the status line
+   - **Broken wikilinks / orphan pages / missing backlinks** → report only; the user decides intent
 
 ### What lint does NOT do
-- Rewrite the index (that's **Full Rebuild** — separate workflow)
+- Rewrite the index (that's Full Rebuild)
 - Modify file content beyond frontmatter fixes
 - Delete files
-- Make changes without asking
-
-## Fallback Mode: CLI Unavailable
-
-If Obsidian is not running or the CLI is not accessible, fall back to built-in tools:
-
-| CLI operation | Fallback |
-|---------------|----------|
-| `create template=` | Write tool — include full frontmatter + body sections manually |
-| `property:set` | Read + Edit — modify the YAML frontmatter block directly |
-| `property:read` | Read tool — parse the YAML frontmatter |
-| `append` | Read + Edit — add content at the end of the file |
-| `tasks todo` | Grep for `- \[ \]` across vault files |
-| `task done` | Read + Edit — change `- [ ]` to `- [x]` on the target line |
-| `files folder=` | Glob for `<folder>/**/*.md` |
-| `search query=` | Grep for the query text |
-| `backlinks` | Grep for `[[filename` across vault files |
-| `move` | Bash `mv` (note: won't auto-update wikilinks) |
-
-All frontmatter schemas, naming conventions, and structural rules still apply regardless of mode.
+- Make any change without asking
