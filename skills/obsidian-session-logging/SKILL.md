@@ -104,6 +104,12 @@ Then set the file's own dynamic properties (`project`, `author`, `sn_project`, �
   obsidian vault="X" read path="Daily Logs/<most recent>.md"
   ```
 
+- [ ] **Read the latest session log's Resume pointer** for the project(s) you're continuing — it's the handoff from the last session (current update set/branch, what landed, the next action, frontier). Read it before exploring code, and verify its claims against real state before building on them:
+  ```bash
+  obsidian vault="X" files folder="<project>/Session Logs"
+  obsidian vault="X" read path="<project>/Session Logs/<most recent>.md"
+  ```
+
 - [ ] **Read the project overview** for each project you'll touch:
   ```bash
   obsidian vault="X" read path="<project>/Project Overviews/<Project Name> Overview.md"
@@ -163,7 +169,8 @@ obsidian vault="X" append path="<session>.md" content="## <new heading>\n\n<cont
 - [ ] Catch stale claims: "needs testing" when tests passed, "in progress" when done, phases listed as upcoming that are finished
 
 ### 2. Session log
-- [ ] Fill each placeholder section — Summary, Changes, Open Issues, Changed Files — **in place with the Read + Edit tools** (the CLI has no find/replace; `append` would duplicate the existing headers). Replace `## Summary\n` with the header plus its content, and so on for each.
+- [ ] Fill each placeholder section — Summary, Changes, Open Issues, Changed Files, **Resume pointer** — **in place with the Read + Edit tools** (the CLI has no find/replace; `append` would duplicate the existing headers). Replace `## Summary\n` with the header plus its content, and so on for each.
+- [ ] **The Resume pointer is the handoff.** Fill it machine-crisp so a fresh session (after `/clear`, zero memory of this conversation) can continue without re-deriving: current update set/branch/working state, what landed and where, the single NEXT action, the frontier, and any pending verification (human test, review, deploy). Verify each line against real state — don't write what you hoped happened. (See the `checkpoint` skill for the same discipline as a standalone trigger.)
 - [ ] Set status complete: `obsidian vault="X" property:set name="status" value="complete" path="<session>"`
 
 ### 3. Daily log

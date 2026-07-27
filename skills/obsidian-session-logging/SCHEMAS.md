@@ -46,6 +46,7 @@ sn_synced: false
 - Tag post-deploy actions with `#post-deploy` immediately
 - Include changed files at end of session
 - Set `status: complete` during the wrap-up checklist
+- Body sections: `## Summary`, `## Changes`, `## Open Issues`, `## Changed Files`, `## Resume pointer`, `## Session Notes`. The **Resume pointer** is the post-`/clear` handoff — machine-crisp state for a fresh session to continue from: current update set/branch/working state, what landed and where, the single NEXT action, the frontier, and any pending verification. Add this section to the vault's `Templates/Session Log` so every new log carries it.
 
 ## Daily Log
 
