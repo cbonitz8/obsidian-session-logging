@@ -138,3 +138,23 @@ If you use a sync plugin (e.g., Snobby for ServiceNow sync), the skill manages `
 > "Rebuild the index"
 >
 > Skill scans the entire vault and regenerates `Index/index.md` from scratch.
+
+## Checkpoint / Resume
+
+The `checkpoint` skill bridges the **work → `/clear` → resume** loop without losing the thread.
+Every checkpoint is addressed by a short **4-char id** and registered in a vault-wide
+`_CHECKPOINTS.md` index, with its own durable pointer file — so resume lands on the *exact* thread,
+even when several projects (or several threads in one project) are in flight at once.
+
+**Checkpointing:**
+> "Checkpoint so I can /clear"
+>
+> Skill captures live git/update-set state, writes a per-id Resume pointer + index row, and hands
+> back an id — e.g. *"Checkpoint `k7f3` saved. Resume with `/checkpoint-resume k7f3`."*
+
+**Resuming:**
+> `/checkpoint-resume k7f3`
+>
+> Skill reads the `_CHECKPOINTS.md` registry, loads that id's pointer, reconciles the fingerprint
+> against live state, and continues. Bare `/checkpoint-resume` (no id) lists the live checkpoints
+> and asks which — it never guesses by file mtime.
