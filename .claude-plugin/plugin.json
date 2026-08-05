@@ -1,6 +1,6 @@
 {
-  "name": "obsidian-session-logging",
-  "version": "1.3.0",
+  "name": "obsession",
+  "version": "2.0.0",
   "description": "Track work sessions, daily progress, and standup notes in an Obsidian vault",
   "author": {
     "name": "cbonitz8",

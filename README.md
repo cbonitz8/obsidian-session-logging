@@ -1,4 +1,4 @@
-# Obsidian Session Logging
+# Obsession
 
 A Claude Code plugin for tracking work sessions, daily progress, and standup notes in an Obsidian vault. Uses the Obsidian CLI (1.12+) for vault operations with fallback to file tools when CLI is unavailable.
 
@@ -7,13 +7,13 @@ A Claude Code plugin for tracking work sessions, daily progress, and standup not
 1. Add the marketplace:
 
 ```
-/plugin marketplace add cbonitz8/obsidian-session-logging
+/plugin marketplace add cbonitz8/obsession
 ```
 
 2. Install the plugin:
 
 ```
-/plugin install obsidian-session-logging@obsidian-session-logging
+/plugin install obsession@obsession
 ```
 
 3. Add vault configuration to your project's `CLAUDE.md`:
@@ -48,7 +48,7 @@ The skill activates automatically when you:
 You can also invoke it directly:
 
 ```
-/obsidian-session-logging
+/obsession
 ```
 
 ## Requirements
@@ -105,7 +105,7 @@ The skill uses Obsidian templates for creating new files. Create these in your v
 - **Project Overview** — frontmatter: project, status, type
 - **Component Doc** — frontmatter: type, name
 
-See [SKILL.md](skills/obsidian-session-logging/SKILL.md) for complete frontmatter schemas and naming conventions.
+See [SKILL.md](skills/obsession/SKILL.md) for complete frontmatter schemas and naming conventions.
 
 ## Optional: Sync Plugin Fields
 
