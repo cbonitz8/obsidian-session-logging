@@ -1,9 +1,9 @@
 ---
-name: obsidian-session-logging
+name: obsession
 description: Use when starting a work session (to load recent project context), wrapping one up, or when the user asks to write session or standup notes, lint the vault, or rebuild the index.
 ---
 
-# Obsidian Session Logging
+# Obsession
 
 Track work sessions, daily progress, and standup notes in an Obsidian vault.
 

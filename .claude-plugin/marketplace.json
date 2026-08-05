@@ -1,6 +1,6 @@
 {
   "$schema": "https://cdn.jsdelivr.net/gh/anthropics/claude-code@main/.claude-plugin/marketplace.schema.json",
-  "name": "obsidian-session-logging",
+  "name": "obsession",
   "description": "Track work sessions, daily progress, and standup notes in an Obsidian vault using the Obsidian CLI",
   "owner": {
     "name": "cbonitz8",
@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "obsidian-session-logging",
+      "name": "obsession",
       "description": "Session logging, daily logs, standups, and project tracking via Obsidian CLI",
       "source": "./",
       "category": "productivity"

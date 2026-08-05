@@ -94,7 +94,7 @@ can continue without re-deriving anything.
 2. **Determine the id.** Reuse the id this session was resumed from, if any; otherwise mint a
    new 4-char id and confirm it's absent from `_CHECKPOINTS.md`.
 3. **Ensure a session log exists** for the work in play. If none for today, create one via
-   the `obsidian-session-logging` skill (invoke it — don't hand-roll frontmatter). If one
+   the `obsession` skill (invoke it — don't hand-roll frontmatter). If one
    exists, use it.
 4. **Fill the `## Resume pointer` section** of that log. Machine-crisp, not prose; verify each
    line against the state captured in step 1, don't write what you *hoped* happened:
@@ -111,7 +111,7 @@ can continue without re-deriving anything.
 7. **Overwrite the latest alias** `<project>/Session Logs/_RESUME.md` with a copy of this per-id
    pointer (back-compat).
 8. **Fill the rest of the log** (Summary/Changes/Open Issues/Changed Files) — a light pass via
-   `obsidian-session-logging` is fine; the pointer is the load-bearing part. Optionally run that
+   `obsession` is fine; the pointer is the load-bearing part. Optionally run that
    skill's full wrap-up (daily log, standup, index) if the user wants it — ask, don't assume.
 9. **Tell the user it's safe to `/clear`, and SURFACE THE ID prominently**, e.g.:
    > Checkpoint **`k7f3`** saved (EIS 2.0). Resume with **`/checkpoint-resume k7f3`**.
@@ -150,7 +150,7 @@ checkpointed — treat it as history, not a live handoff, and reconstruct curren
 
 ## Notes
 
-- This skill is the *discipline*; `obsidian-session-logging` does the log file I/O (templates,
+- This skill is the *discipline*; `obsession` does the log file I/O (templates,
   frontmatter, daily log, standup, index). The per-id pointer, the `_CHECKPOINTS.md` index, and
   the `_RESUME.md` alias are owned by THIS skill — write them directly.
 - `/checkpoint-resume [id]` is the dedicated resume entry point (its own skill); it defers all
