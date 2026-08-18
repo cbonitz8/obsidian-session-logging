@@ -18,9 +18,18 @@ This skill is the thin front door; the full reconcile + staleness logic lives in
    - **Not found** → say so, then list the `status: live` rows (newest first) and ask which.
 2. Read the `pointer` file that row names (`<project>/Session Logs/_RESUME-<id>.md`).
 3. Hand off to the **`checkpoint`** skill's *Resume* steps 2–5: reconcile the fingerprint against
-   live `git`/`sndeck` state, apply the staleness guard, re-hydrate working state, **consume the
-   pointer on resume** (flip the id's row + per-id file to `status: complete`), then restate where
-   things stand and the NEXT action and continue.
+   live state **for the surfaces the pointer's `surfaces:` field names** (git, ServiceNow, both, or
+   neither — do not run the other paradigm's commands), apply the staleness guard, re-hydrate
+   working state, **resolve the pointer's status** (`complete` on resume, `stale` if abandoned),
+   then restate where things stand and the NEXT action and continue.
+
+   Two things that decide the call and are easy to skim past:
+   - **ServiceNow has its own staleness signals** — a record edited after `checkpoint_at`, an
+     update set now `Complete`/`Ignored`, a different `instance`. The guard's git signals being
+     inapplicable is **not** evidence a pointer is fresh.
+   - **Step 2 gates step 3.** A drifted current-set pointer alone is routine re-hydration; a
+     closed set, a changed record, or a different instance is staleness. Don't repair your way
+     past a fired signal.
 
 ## Without an id — `/checkpoint-resume`
 
@@ -33,6 +42,7 @@ This skill is the thin front door; the full reconcile + staleness logic lives in
 ## Notes
 
 - If `_CHECKPOINTS.md` doesn't exist, no checkpoint was ever written with this version — tell the
-  user plainly and reconstruct current state from `git`/`sndeck`, don't narrate an old `_RESUME.md`
-  as live.
+  user plainly and reconstruct current state from the live surfaces (git, ServiceNow, or whatever
+  the work actually lives on), don't narrate an old `_RESUME.md` as live.
+- `status` is `live` | `complete` | `stale`. Bare `/checkpoint-resume` lists only `live` rows.
 - Ids are minted by the `checkpoint` skill (4 chars, alphabet `23456789abcdefghjkmnpqrstuvwxyz`).
