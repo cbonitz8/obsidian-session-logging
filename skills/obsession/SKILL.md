@@ -219,46 +219,81 @@ obsidian vault="X" append path="<session>.md" content="## <new heading>\n\n<cont
   ```
 
 - [ ] **Own exactly one `### <author>` section; preserve everyone else's.** Read the standup first. If your section exists, Read + Edit to **add** bullets — never replace content, never append a second heading like `### Alice (Evening)`:
-  - **Yesterday / prior days:** keep existing bullets; add a new day section only for work on days not yet listed
-  - **Today:** keep all existing bullets, append new ones for work since your last update
+  - **Done / prior days:** keep existing bullets; add a new day block only for work on days not yet listed
+  - **Next:** keep all existing bullets, append new ones for work since your last update
   - **Blockers:** update only when status changed
   ```bash
-  # Section does NOT exist yet — append it:
-  obsidian vault="X" append path="Standups/<standup_date>.md" content="### <author>\n\n**Yesterday:**\n- Bullet points\n\n**Today:**\n- Next steps\n\n**Blockers:** None"
+  # Section does NOT exist yet — append it (see Section shape below for the full recipe):
+  obsidian vault="X" append path="Standups/<standup_date>.md" content="### <author>\n\n**Done (<work_day>):**\n\n- **Headline claim.**\n  - Evidence.\n\n**Next:**\n- Next steps\n\n**Blockers:** None"
   ```
 
+**Section shape.** Every `### <author>` section is these four parts, in this order:
+
+1. **Continuity line** — italic, one sentence, only when your previous entry was in an earlier standup. What that entry covered plus a wikilink to it, so a reader who missed a day can catch up without hunting.
+2. **`**Done (<work_day>):**`** — the day's outcomes. Name the date; don't write "Yesterday".
+3. **`**Next:**`** — what `<standup_date>` picks up.
+4. **`**Blockers:**`** — `None`, or what you need and from whom.
+
+**Every Done item is a headline plus its evidence.**
+
+- The top-level bullet is **one bold sentence** carrying the outcome *and* the part that wasn't expected. A reader who stops there has the news.
+- Indented under it: the numbers, the table/field/file names, the trap the next person would hit, the assumption that turned out wrong. All detail lives here — never in the headline.
+- Blank line between top-level bullets. Sub-bullets stay tight under their headline.
+- Deep dives link out instead of growing: `See [[<project>/Session Logs/<name>|the session log]]`.
+- Group by outcome, not chronology. One bullet per outcome even if it spanned three sessions; one bullet per session is the shape to avoid.
+- Corrections, reverts, and tooling gotchas get their own headline bullets — they are the highest-value lines in the note, not footnotes.
+- Numbers over adjectives: `6,848 vs 2,893 records`, `765/765 across 217 groups`, `0 → 11 edges` — not "several" or "much better".
+
 **Standard format** (one work day rolls into the standup — e.g. Tue recaps Mon):
-```
+```markdown
 ### <author>
 
-**Yesterday:**
-- Bullet points from <work_day> session logs
+*Previous entry — **2026-08-17**: contacts scope cuts, workbook import end to end, three validation fixes. Full write-up: [[Standups/2026-08-17|2026-08-17 standup]].*
 
-**Today:**
-- Plans for <standup_date> — next steps, open threads to pick up
+**Done (2026-08-18):**
 
-**Blockers:** None (or list any)
+- **Dropped 8 legacy columns off the region table, and none of them needed the data migration the backlog assumed.**
+  - All 16 regions carrying a dealer group already matched their master exactly; the 11 with IT data held test junk (`test/test/test`, `text me pls`).
+  - The backlog was also wrong that the phase was unblocked — `Create Cyber Group` was still active and still writing all 8 values right up to the delete.
+
+- **Two intake paths were silently discarding the rep-entered contact.** Name, email and phone were written to columns that no longer exist, and a write to a missing column is a no-op with no error.
+  - Trap that would have cost a day: intake-written rows must be `u_manual = true`, or the nightly sweep deactivates them within 24 hours with only a `gs.warn` to show.
+
+- **Workbook delivered for <customer>.** See [[VMS/Session Logs/service provider workbook|the session log]].
+  - The finding underneath it: questionnaires attach two ways and the portal reads only one — 6,848 records via one column against 2,893 via the other.
+
+- **Corrections on the record.** The nav offset shipped twice from CSS arithmetic without ever loading the page; measured properly, the original was already correct. All of it backed out.
+
+**Next:**
+- <what <standup_date> picks up — one line each, no sub-bullets needed>
+
+**Blockers:** None (or: what you need, from whom)
 ```
 
-**Multi-day format** — use whenever more than one work day rolls in (Mon recapping Fri+weekend, post-holiday, …). Label each day instead of "Yesterday":
-```
+**Multi-day format** — whenever more than one work day rolls in (Mon recapping Fri+weekend, post-holiday, …). One `**Done (<date>):**` block per day, same headline+evidence shape inside each:
+```markdown
 ### <author>
 
-**Friday (2026-03-28):**
-- Bullet points from Friday's session logs
+**Done (2026-03-28, Friday):**
 
-**Monday (2026-03-31):**
-- Bullet points from Monday's session logs
+- **Headline claim.**
+  - Evidence.
 
-**Today:**
+**Done (2026-03-31, Monday):**
+
+- **Headline claim.**
+  - Evidence.
+
+**Next:**
 - Plans for <standup_date>
 
 **Blockers:** None (or list any)
 ```
 
 - Check daily logs since the last standup; include every day that has session logs (skip days with none)
-- "Yesterday" fits only when exactly one work day rolls in — otherwise use named-day labels
-- "Today" describes plans for `<standup_date>`, not actuals from `<work_day>`
+- One `Done` block fits only when exactly one work day rolls in — otherwise one block per day
+- `Next` describes plans for `<standup_date>`, not actuals from `<work_day>`
+- Source the headlines from the session logs' Summary and Resume pointer; if a session log has no headline-worthy outcome, it doesn't earn a bullet
 
 ### 5. Update the vault index
 - [ ] Follow the **Incremental Update** workflow under Vault Index below
