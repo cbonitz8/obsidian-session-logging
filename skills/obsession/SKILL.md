@@ -104,7 +104,7 @@ Then set the file's own dynamic properties (`project`, `author`, `sn_project`, �
   obsidian vault="X" read path="Daily Logs/<most recent>.md"
   ```
 
-- [ ] **Read the latest session log's Resume pointer** for the project(s) you're continuing — it's the handoff from the last session (current update set/branch, what landed, the next action, frontier). Read it before exploring code, and verify its claims against real state before building on them:
+- [ ] **Read the latest session log's Resume pointer** for the project(s) you're continuing — it's the handoff from the last session (current update set/branch, what landed, the next action, frontier). Read it before exploring code, and verify its claims against real state before building on them. If `<vault-root>/_CHECKPOINTS.md` has a `live` row for this thread, **that row and its per-id pointer are authoritative** — the log's copy can lag them by hours; resume through `/checkpoint-resume <id>` instead of reading the log's pointer as current:
   ```bash
   obsidian vault="X" files folder="<project>/Session Logs"
   obsidian vault="X" read path="<project>/Session Logs/<most recent>.md"
@@ -153,6 +153,7 @@ Then set the file's own dynamic properties (`project`, `author`, `sn_project`, �
 # new sections only:
 obsidian vault="X" append path="<session>.md" content="## <new heading>\n\n<content>"
 ```
+`## Checkpoints` is the one such section this plugin writes on its own — the `checkpoint` skill appends a dated block there per segment, and wrap-up consolidates them away (see Wrapping Up → step 2).
 
 **Filing valuable synthesis.** When a conversation produces reusable analysis — cross-project comparisons, architectural decisions, research findings — save it to the vault rather than let it die in chat. Use a Design Spec (`type: plan`) for project-specific analysis, a Resource (`type: component`) for cross-project knowledge. Ask first: "This analysis seems worth keeping — want me to save it to the vault?"
 
@@ -168,12 +169,21 @@ obsidian vault="X" append path="<session>.md" content="## <new heading>\n\n<cont
 - [ ] Check off stale checkboxes across all active projects (`tasks todo verbose`); set plan `status: completed` when all steps are done
 - [ ] Catch stale claims: "needs testing" when tests passed, "in progress" when done, phases listed as upcoming that are finished
 
-### 2. Session log
+### 2. Session log — **curate, don't compose**
+
+If the session checkpointed, the log already carries a `## Checkpoints` section: one dated block per segment, holding what landed while it was still fresh. Those blocks are your source material, not scenery. After three `/clear`s the agent writing this log remembers only the last segment — the blocks are the only record of the rest, so Summary and Changes get **consolidated from them**, not recalled.
+
+- [ ] **Consolidate `## Checkpoints` into Summary and Changes, then delete the section.** Group by outcome, not by checkpoint — three blocks describing one feature collapse into one Summary line. Anything still unfinished folds into Open Issues.
+- [ ] **This step is mandatory, and it is not done until `## Checkpoints` is gone.** Skip it and the log degrades into a pile of dated deltas under an empty Summary — strictly worse than composing from memory, because it *looks* written. Done means: Summary reads as one session's story, every block's content is accounted for somewhere in the log, and the section no longer exists.
+- [ ] Session never checkpointed (no `## Checkpoints` section)? Compose Summary and Changes directly, as before.
 - [ ] Fill each placeholder section — Summary, Changes, Open Issues, Changed Files, **Resume pointer** — **in place with the Read + Edit tools** (the CLI has no find/replace; `append` would duplicate the existing headers). Replace `## Summary\n` with the header plus its content, and so on for each.
-- [ ] **The Resume pointer is the handoff.** Fill it machine-crisp so a fresh session (after `/clear`, zero memory of this conversation) can continue without re-deriving: current update set/branch/working state, what landed and where, the single NEXT action, the frontier, and any pending verification (human test, review, deploy). Verify each line against real state — don't write what you hoped happened. (See the `checkpoint` skill for the same discipline as a standalone trigger.)
+- [ ] **The Resume pointer is the handoff.** Fill it machine-crisp so a fresh session (after `/clear`, zero memory of this conversation) can continue without re-deriving: current update set/branch/working state, what landed and where, the single NEXT action, the frontier, and any pending verification (human test, review, deploy). Verify each line against real state — don't write what you hoped happened. (See the `checkpoint` skill for the same discipline as a standalone trigger.) It is a **convenience copy**: if the thread was checkpointed, `_CHECKPOINTS.md` and the per-id pointer are authoritative and win any disagreement.
 - [ ] Set status complete: `obsidian vault="X" property:set name="status" value="complete" path="<session>"`
 
 ### 3. Daily log
+
+Runs **after** step 2's curation, never alongside it. Roll up from the curated Summary; never from raw `## Checkpoints` blocks, which are unverified in-flight deltas that step 1 has not vetted. The daily log is where a checkpoint's mid-session state would do the most damage — other projects read it for status.
+
 - [ ] Create from template (see [SCHEMAS.md](SCHEMAS.md) → Daily Log):
   ```bash
   obsidian vault="X" create path="Daily Logs/<brief description>.md" template="Daily Log"
@@ -293,7 +303,7 @@ obsidian vault="X" append path="<session>.md" content="## <new heading>\n\n<cont
 - Check daily logs since the last standup; include every day that has session logs (skip days with none)
 - One `Done` block fits only when exactly one work day rolls in — otherwise one block per day
 - `Next` describes plans for `<standup_date>`, not actuals from `<work_day>`
-- Source the headlines from the session logs' Summary and Resume pointer; if a session log has no headline-worthy outcome, it doesn't earn a bullet
+- Source the headlines from the session logs' **curated** Summary (step 2) and Resume pointer; if a session log has no headline-worthy outcome, it doesn't earn a bullet
 
 ### 5. Update the vault index
 - [ ] Follow the **Incremental Update** workflow under Vault Index below
@@ -405,6 +415,7 @@ A read-only audit of vault health. Scans, reports, asks which to fix — changes
 | **Stale overviews** | Overview status claims that don't match actual project state |
 | **Unclosed plans** | All tasks checked off but `status` still `active` |
 | **Unclosed sessions** | `status: in-progress` on session logs from past days |
+| **Uncurated checkpoints** | `status: complete` session logs still carrying a `## Checkpoints` section — wrap-up step 2 was skipped |
 | **Missing frontmatter** | Required fields absent for the file's `type` |
 | **Broken wikilinks** | Links to files that don't exist |
 | **Missing required backlinks** | Daily logs without session links, sessions without plan links |
@@ -431,6 +442,7 @@ A read-only audit of vault health. Scans, reports, asks which to fix — changes
    - **Missing index entries** → add to index
    - **Stale index entries** → remove from index
    - **Unclosed sessions** → set `status: complete`
+   - **Uncurated checkpoints** → report only, and offer to run wrap-up step 2 on that log; consolidating blocks into a Summary is a judgement call, not a frontmatter fix, and deleting the section without doing it destroys the only record of those segments
    - **Unclosed plans** → set `status: completed`
    - **Missing frontmatter** → add required fields with sensible defaults
    - **Stale overviews** → read current state, update the status line
