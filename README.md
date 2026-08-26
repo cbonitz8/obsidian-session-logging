@@ -158,3 +158,23 @@ even when several projects (or several threads in one project) are in flight at 
 > Skill reads the `_CHECKPOINTS.md` registry, loads that id's pointer, reconciles the fingerprint
 > against live state, and continues. Bare `/checkpoint-resume` (no id) lists the live checkpoints
 > and asks which — it never guesses by file mtime.
+
+## Weekly Update
+
+The `weekly-update` skill rolls a week of standups and session logs into the four-section update a
+manager reads: **wins — in prod / follow up / still moving / note worthy**.
+
+> `/weekly-update focus: vendor services`
+>
+> Skill reads the week's standups, every session and daily log dated in the window, and last week's
+> update; verifies every production claim against the session log it came from; then prints the
+> update plus a **cut list** of what it left out and why, and writes the note to
+> `Weekly Updates/YYYY-MM-DD.md`.
+
+The window is the seven days ending on the requested day, defaulting to the most recent Tuesday.
+`focus:` is what leadership is leaning on right now — it gates the *still moving* section only, and
+is asked once if omitted. It is deliberately never stored, since those priorities drift.
+
+The admission rule is the whole skill: **a line exists only if someone outside the team can now do
+something they couldn't, or is no longer affected by something they were.** Status, internal chores,
+and effort metrics don't earn lines.
