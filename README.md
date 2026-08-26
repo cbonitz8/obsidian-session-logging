@@ -159,6 +159,18 @@ even when several projects (or several threads in one project) are in flight at 
 > against live state, and continues. Bare `/checkpoint-resume` (no id) lists the live checkpoints
 > and asks which — it never guesses by file mtime.
 
+**State vs. narrative.** A checkpoint writes two different things to two different places, because
+they age differently. *State* — the current update set, branch, NEXT action, frontier — goes only in
+the per-id pointer and the registry, where resume consumes it; it can be wrong within the hour, so
+it is never copied anywhere a reader might trust it later. *Narrative* — what actually landed in
+this segment — is appended to the session log as a dated `## Checkpoints` block, and stays true
+forever.
+
+That block is what lets a thread survive three `/clear`s and still get written up honestly: the
+agent doing the wrap-up remembers only the last segment, but the blocks hold the rest. Wrap-up then
+**curates** them — consolidating the blocks into Summary and Changes and deleting the section, so a
+finished log reads as one session's story rather than a pile of deltas.
+
 ## Weekly Update
 
 The `weekly-update` skill rolls a week of standups and session logs into the four-section update a

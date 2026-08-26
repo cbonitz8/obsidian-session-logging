@@ -16,7 +16,9 @@ This skill is the thin front door; the full reconcile + staleness logic lives in
 
 1. Open `<vault-root>/_CHECKPOINTS.md`, find the row whose `id` matches.
    - **Not found** → say so, then list the `status: live` rows (newest first) and ask which.
-2. Read the `pointer` file that row names (`<project>/Session Logs/_RESUME-<id>.md`).
+2. Read the `pointer` file that row names (`<project>/Session Logs/_RESUME-<id>.md`). Read state
+   from **that file and the registry row**, not from the session log's `## Resume pointer` section —
+   see *The registry wins for state* below.
 3. Hand off to the **`checkpoint`** skill's *Resume* steps 2–5: reconcile the fingerprint against
    live state **for the surfaces the pointer's `surfaces:` field names** (git, ServiceNow, both, or
    neither — do not run the other paradigm's commands), apply the staleness guard, re-hydrate
@@ -38,6 +40,20 @@ This skill is the thin front door; the full reconcile + staleness logic lives in
 2. Ask the user which id to resume. **Never auto-pick**, and never fall back to sorting
    `_RESUME.md` files by mtime — that is the exact failure the id system removes.
 3. On their choice, proceed as *With an id* above.
+
+## The registry wins for state
+
+The session log's `## Resume pointer` section is a **convenience copy**, written once and then left
+behind. `_CHECKPOINTS.md` and the per-id pointer are authoritative. When they disagree, believe the
+registry and don't narrate the log's pointer at all — not even as "the log says X, but".
+
+This is not a theoretical lag. In one real session the log's pointer was wrong **twice inside
+ninety minutes** — the update set it named was completed, then a fresh one was created — while the
+registry row was correct both times. A stale copy that a reader trusts is worse than no copy.
+
+The log's `## Checkpoints` blocks are a different thing entirely: narrative, past tense, what landed
+in each segment. They cannot go stale, and they are the right thing to read for *what happened
+before you got here* — as history, never as current state.
 
 ## Notes
 

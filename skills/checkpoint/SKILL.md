@@ -201,19 +201,79 @@ can continue without re-deriving anything.
    - **NEXT action** — the single first thing the resuming session should do.
    - **Frontier** — what's unblocked after that.
    - **Pending verification** — human F1, code review, deploy, sync — anything not yet confirmed.
-5. **Write the per-id pointer** `<project>/Session Logs/_RESUME-<id>.md` (overwrite if same id)
+
+   This section is a **convenience copy**. The per-id pointer and the `_CHECKPOINTS.md` row are
+   authoritative for state; when they disagree with the log, the registry wins. Do not add durable
+   copies of state anywhere else in the log — narrative goes in step 5's block, state stops here.
+5. **Append the checkpoint block to the session log — the landed delta ONLY.** State goes stale;
+   narrative does not. "The funnel shipped as a second pass on 2026-08-25" is true forever; "the
+   current update set is X" was true for about an hour. The pointer carries state and is *consumed*
+   on resume; the session log accumulates the story, so a thread that survives three `/clear`s can
+   still be written up at wrap-up by an agent that remembers only the last segment.
+
+   Append under a `## Checkpoints` section — a genuinely new section, so the CLI's `append` is the
+   right tool here (see `obsession` → *Writing to session logs*):
+
+   ```markdown
+   ## Checkpoints
+
+   ### `<id>` · <YYYY-MM-DD HH:MM>
+
+   - <what landed since the previous block — one bullet per outcome>
+   ```
+
+   The id in the heading is what ties this narrative to its registry row and its pointer file. One
+   thread keeps one id for its whole life, so the same id recurs and the **timestamp** is what
+   separates the blocks.
+
+   **Landed delta only — nothing else.** Not NEXT, not the current set/branch/instance, not the
+   frontier, not pending verification. Those are state; they live in the pointer, single-sourced,
+   and resume consumes them. Every extra durable copy is one more thing that can lie to a future
+   session: a Resume pointer went stale twice inside ninety minutes in one real session (the set
+   was completed, then a new one created), and a copy of it pasted into the log would have outlived
+   the thread with nothing to correct it.
+
+   **Nothing landed since the last block? Write nothing.** A checkpoint taken purely to survive a
+   `/clear` mid-thought has no narrative in it. An empty block is not neutral — at wrap-up it reads
+   as a segment that produced nothing rather than one that never finished, and curation has to
+   litigate the difference. Tell the user you skipped it instead.
+
+   `append` writes at end of file, so blocks stay contiguous under `## Checkpoints` only while
+   nothing else is appended between checkpoints. If another section landed after it, place the block
+   under the existing heading with Read + Edit rather than appending a second `## Checkpoints`.
+
+6. **Write the per-id pointer** `<project>/Session Logs/_RESUME-<id>.md` (overwrite if same id)
    with the step-1 fingerprint and the pointer block. Set `status: live` if work is in flight,
    `status: complete` only if there is genuinely nothing to resume.
-6. **Upsert the index row** in `<vault-root>/_CHECKPOINTS.md` (create the file with the header +
+7. **Upsert the index row** in `<vault-root>/_CHECKPOINTS.md` (create the file with the header +
    table if missing). Newest on top.
-7. **Overwrite the latest alias** `<project>/Session Logs/_RESUME.md` with a copy of this per-id
+8. **Overwrite the latest alias** `<project>/Session Logs/_RESUME.md` with a copy of this per-id
    pointer (back-compat).
-8. **Fill the rest of the log** (Summary/Changes/Open Issues/Changed Files) — a light pass via
-   `obsession` is fine; the pointer is the load-bearing part. Optionally run that
-   skill's full wrap-up (daily log, standup, index) if the user wants it — ask, don't assume.
-9. **Tell the user it's safe to `/clear`, and SURFACE THE ID prominently**, e.g.:
-   > Checkpoint **`k7f3`** saved (EIS 2.0). Resume with **`/checkpoint-resume k7f3`**.
-   Also name the session-log path + the one-line NEXT action. Stop — they press clear.
+9. **Leave Summary/Changes for wrap-up.** Step 5's block is this segment's narrative record —
+   don't also pre-write Summary from it, because wrap-up consolidates every block into that section
+   and a half-written Summary just gives curation something to reconcile. Open Issues and Changed
+   Files are fine to keep current as you go. Optionally run `obsession`'s full wrap-up
+   (daily log, standup, index) if the user wants it — ask, don't assume.
+10. **Tell the user it's safe to `/clear`, and SURFACE THE ID prominently**, e.g.:
+    > Checkpoint **`k7f3`** saved (EIS 2.0). Resume with **`/checkpoint-resume k7f3`**.
+    Also name the session-log path + the one-line NEXT action. Stop — they press clear.
+
+### What checkpoint does NOT write
+
+The session log is the **only** log a checkpoint touches. Not the daily log, not the standup — and
+not to save effort. Each would be actively wrong:
+
+- **Daily log** — a *verified*, cross-project roll-up written once at wrap-up, after the
+  verification pass. A mid-session checkpoint has nothing verified in it yet; appending would inject
+  in-flight state into the file other projects read for status.
+- **Any checkpoint can end `stale`.** Work gets abandoned. Auto-appending publishes work that never
+  happened into the files a reader trusts most, and no later step retracts it. The session log
+  tolerates this because wrap-up curates it; the daily log has no such pass.
+- **Standup** — curated and team-facing, sourced deliberately from finished session logs. It is not
+  a log sink.
+
+If a checkpoint really is the end of the day's work, it is a wrap-up, not a checkpoint — run
+`obsession`'s wrap-up (step 9) and let the verification steps do their job.
 
 ## Resume (after `/clear`, fresh session)
 
